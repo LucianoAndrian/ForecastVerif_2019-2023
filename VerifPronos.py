@@ -178,7 +178,8 @@ def ComputeAndPlot(index, correlaciones, dpi, save, lead=0, test=False):
                   loc='upper left')
 
         if save:
-            plt.savefig(out_dir + index.upper() + '_' + t + '.jpg', dpi=dpi)
+            plt.savefig(out_dir + index.upper() + '_' + t + '_lead_' +
+                        str(lead) +  '.jpg', dpi=dpi)
             plt.close('all')
         else:
             plt.show()
@@ -230,7 +231,8 @@ def ComputeAndPlot(index, correlaciones, dpi, save, lead=0, test=False):
                         '_CHIRPS1', 'CMAP', 'CHIRPS'], loc='upper left')
 
         if save:
-            plt.savefig(out_dir + index.upper() + '_' + t + '_wpp_anoms.jpg',
+            plt.savefig(out_dir + index.upper() + '_' + t + '_lead_' +
+                        '_wpp_anoms.jpg',
                         dpi=dpi)
             plt.close('all')
         else:
