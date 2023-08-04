@@ -19,12 +19,12 @@ from Funciones import Nino34CPC, DMI # indices
 from Funciones import SelectFilesNMME, MakeMask, ChangeLons, ABNobs, \
     RPSO, RPSF, BSO, BSF, CorrSP, Plot, SameDateAs
 ################################################################################
-dpi = 50
-save = False
+dpi = 300
+save = True
 mapa = False
 correlaciones = True
 test = False # = True solo va computar una region
-lead = [0,1]
+lead = [0,1,2,3]
 ################################################################################
 def ComputeAndPlot(index, correlaciones, dpi, save, lead=0, test=False):
     dates = pd.date_range(start='2018-12-01', end='2023-04-01',
