@@ -19,12 +19,15 @@ from Funciones import Nino34CPC, DMI # indices
 from Funciones import SelectFilesNMME, MakeMask, ChangeLons, ABNobs, \
     RPSO, RPSF, BSO, BSF, CorrSP, Plot, SameDateAs
 ################################################################################
-dpi = 300
 save = True
 mapa = False
 correlaciones = True
 test = False # = True solo va computar una region
-lead = [0,1,2,3]
+lead = [0, 1, 2, 3]
+if save:
+    dpi = 300
+else:
+    dpi = 100
 ################################################################################
 def ComputeAndPlot(index, correlaciones, dpi, save, lead=0, test=False):
     dates = pd.date_range(start='2018-12-01', end='2023-04-01',
@@ -324,7 +327,7 @@ dmi, aux, dmi_aux = DMI(filter_bwa=False, start_per=1920, end_per=2023)
 n34 = [0.7, 0.7, 0.7, 0.7, 0.5, 0.5, 0.3, 0.1, 0.2 ,0.3, 0.5 ,0.5, 0.5,	0.5,
 0.4, 0.2, -0.1, -0.3, -0.4, -0.6, -0.9, -1.2, -1.3, -1.2, -1.0, -0.9, -0.8,
 -0.7, -0.5, -0.4, -0.4, -0.5, -0.7, -0.8, -1.0, -1.0, -1.0, -0.9, -1.0, -1.1,
--1.0, -0.9, -0.8, -0.9, -1.0, -1.0, -0.9, -0.8, -0.7, -0.4, -0.2]
+-1.0, -0.9, -0.8, -0.9, -1.0, -1.0, -0.9, -0.8, -0.7, -0.4, -0.1]
 
 # SAM
 sam = xr.open_dataset(out_dir + 'sam.nc')
