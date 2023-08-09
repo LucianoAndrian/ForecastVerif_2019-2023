@@ -156,7 +156,7 @@ for ln, lt, t in zip(lon_regiones, lat_regiones, titulos):
                         label='Below')
 
             plt.legend()
-
+            plt.ylim((0.15,0.55))
             plt.xlim((min, max))
             ax.grid(True)
 
@@ -214,7 +214,7 @@ for ln, lt, t in zip(lon_regiones, lat_regiones, titulos):
             ax.set_yticklabels(['Above', 'Normal', 'Below'])
 
             plt.legend()
-
+            ax.set_zlim(0, .8)
             plt.xlim((min, max))
             ax.set_zlabel('Prob.', size=12)
             ax.set_xlabel(ititle, size=12)
