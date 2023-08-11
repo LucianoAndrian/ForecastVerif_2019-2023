@@ -866,3 +866,9 @@ def WaveFilter(serie, harmonic):
 
     fil = serie - xs
     return(fil)
+####################################################################################################################
+def CreateDirectory(out_dir, *args):
+    for arg in args:
+        if arg is not None:
+            if not os.path.exists(os.path.join(out_dir, str(arg))):
+                os.mkdir(os.path.join(out_dir, str(arg)))
