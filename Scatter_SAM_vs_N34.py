@@ -1,25 +1,23 @@
 """
-Scatter plot entre la magnitud de los índices y la probabilidad pronostica
+Scatter plot entre la magnitud de 2 índices y la probabilidad pronostica
 """
 ################################################################################
 nmme_pronos = '/pikachu/datos/luciano.andrian/verif_2019_2023/nmme_pronos/'
 dir = '/pikachu/datos/luciano.andrian/verif_2019_2023/salidas/'
 out_dir = '/pikachu/datos/luciano.andrian/verif_2019_2023/salidas/scatter/'
-dir_results = 'prob_vs_indices'
-dir_results2 = 'prob_vs_indices_3d'
+dir_results = 'index_vs_index'
 ################################################################################
 import xarray as xr
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from Funciones import CreateDirectory, SelectFilesNMME, DMI, SameDateAs, \
-    LeadMonth, DirAndFile
+from Funciones import SelectFilesNMME, DMI, SameDateAs, LeadMonth, \
+    CreateDirectory, DirAndFile
 ################################################################################
 save = True
 test = False # solo va computar una region
 lead = [0, 1, 2, 3]
 CreateDirectory(out_dir, dir_results)
-CreateDirectory(out_dir, dir_results2)
 ################################################################################
 # some sets
 if save:
@@ -48,7 +46,7 @@ except:
 ################################################################################
 def Proc(array):
     serie = np.reshape(array, array.size)
-    serie_mean = np.nanmean(serie)
+    serie_mean = (np.array(np.nanmean(serie))*8)**5
     return serie, serie_mean
 ################################################################################
 # NMME forecast
@@ -71,10 +69,11 @@ print('Indices DMI, N34, SAM, S-SAM y A-SAM')
 dmi, aux, dmi_aux = DMI(filter_bwa=False, start_per=1920, end_per=2023)
 
 #pendiente, arreglar Ninio3.4CPC
-n34 = [0.7, 0.7, 0.7, 0.7, 0.5, 0.5, 0.3, 0.1, 0.2 ,0.3, 0.5 ,0.5, 0.5,	0.5,
-0.4, 0.2, -0.1, -0.3, -0.4, -0.6, -0.9, -1.2, -1.3, -1.2, -1.0, -0.9, -0.8,
--0.7, -0.5, -0.4, -0.4, -0.5, -0.7, -0.8, -1.0, -1.0, -1.0, -0.9, -1.0, -1.1,
--1.0, -0.9, -0.8, -0.9, -1.0, -1.0, -0.9, -0.8, -0.7, -0.4, -0.1]
+n34 = np.array([0.7, 0.7, 0.7, 0.7, 0.5, 0.5, 0.3, 0.1, 0.2 ,0.3, 0.5 ,0.5, 0.5,
+                0.5, 0.4, 0.2, -0.1, -0.3, -0.4, -0.6, -0.9, -1.2, -1.3, -1.2,
+                -1.0, -0.9, -0.8, -0.7, -0.5, -0.4, -0.4, -0.5, -0.7, -0.8,
+                -1.0, -1.0, -1.0, -0.9, -1.0, -1.1, -1.0, -0.9, -0.8, -0.9,
+                -1.0, -1.0, -0.9, -0.8, -0.7, -0.4, -0.1])
 
 # SAM
 sam = xr.open_dataset(dir + 'sam.nc')['mean_estimate']
@@ -88,8 +87,8 @@ dmi = SameDateAs(dmi_aux, sam)
 
 dates = sam.time.values
 
-indices = [sam, asam, ssam, dmi, n34]
-indices_name = ['SAM', 'A-SAM', 'S-SAM', 'DMI', 'Niño3.4']
+indices = [sam, asam, ssam]
+indices_name = ['SAM', 'A-SAM', 'S-SAM']
 ################################################################################
 
 for ln, lt, t in zip(lon_regiones, lat_regiones, titulos):
@@ -97,15 +96,10 @@ for ln, lt, t in zip(lon_regiones, lat_regiones, titulos):
     region = data_nmme.sel(lon=slice(ln[0], ln[1]), lat=slice(lt[1], lt[0]))
 
     # leads
-
-
     for l in lead:
         mean_below_probs = []
-        below_probs = []
         mean_norm_probs = []
-        norm_probs = []
         mean_above_probs = []
-        above_probs = []
 
         print('Lead: ' + str(l))
         # cada fecha
@@ -121,120 +115,75 @@ for ln, lt, t in zip(lon_regiones, lat_regiones, titulos):
                 # below -------------------------------------------------------#
                 below, below_mean = Proc(aux.prob_below.values)
                 mean_below_probs.append(below_mean)
-                below_probs.append(below)
 
                 # norm --------------------------------------------------------#
                 norm, norm_mean = Proc(aux.prob_norm.values)
                 mean_norm_probs.append(norm_mean)
-                norm_probs.append(norm)
 
                 # above -------------------------------------------------------#
                 above, above_mean = Proc(aux.prob_above.values)
                 mean_above_probs.append(above_mean)
-                above_probs.append(above)
 
             except:
                 print('Skip ' + np.datetime_as_string(d0, unit='M') + ' con' +
                       ' target ' + np.datetime_as_string(d, unit='M'))
 
+        mean_above_probs = np.array(mean_above_probs)
+        mean_norm_probs = np.array(mean_norm_probs)
+        mean_below_probs = np.array(mean_below_probs)
+
         # ---------------------------------------------------------------------#
         # Plots ---------------------------------------------------------------#
         print('Plots by indices...')
         # Mean prob. ----------------------------------------------------------#
+
+        n34_aux = n34[l::]
         for i, ititle in zip(indices, indices_name):
-            fig, ax = plt.subplots(dpi=dpi)
             try:
                 i = i.values
             except:
                 pass
-
             i = i[l::]
-            sd = np.std(i)
-            max = np.max(i) + sd/2
-            min = np.min(i) - sd/2
+            imax = np.round(max(abs(i)),1)
+            fig = plt.figure(figsize=(6, 5), dpi=dpi)
+            ax = fig.add_subplot(111)
 
-            ax.scatter(x=i, y=mean_above_probs, color='dodgerblue', marker='^',
-                        label='Above')
-            ax.scatter(x=i, y=mean_norm_probs, color='forestgreen', marker='s',
-                        label='Normal')
-            ax.scatter(x=i, y=mean_below_probs, color='firebrick', marker='v',
-                        label='Below')
+            # plot sólo el mayor de los valores en cada punto
+            max_prob = np.argmax([mean_above_probs, mean_norm_probs,
+                                 mean_below_probs], axis=0)
 
-            plt.legend()
-            plt.ylim((0.15,0.55))
-            plt.xlim((min, max))
+            ax.scatter(n34_aux[max_prob == 0], i[max_prob == 0],
+                       s=mean_above_probs[max_prob == 0], color='dodgerblue',
+                       marker='^', label='Above', alpha=0.5)
+            ax.scatter(n34_aux[max_prob == 1], i[max_prob == 1],
+                       s=mean_norm_probs[max_prob == 1], color='forestgreen',
+                       marker='s', label='Normal', alpha=0.5)
+            ax.scatter(n34_aux[max_prob == 2], i[max_prob == 2],
+                       s=mean_below_probs[max_prob == 2], color='firebrick',
+                       marker='v',label='Below', alpha=0.5)
+
             ax.grid(True)
+            plt.legend(markerscale=.5)
+            ax.set_ylim(-imax-.2, imax+.2)
+            plt.xlim((-1.75, 1.75))
+            ax.set_ylabel(ititle, size=12)
+            ax.set_xlabel('Niño3.4', size=12)
 
-            fig.set_size_inches(6, 6)
-            plt.xlabel(ititle, size=15)
-            plt.ylabel('Prob.', size=15)
+            plt.title(ititle + ' vs N34 - ' + t + '\n' + 'Lead: '
+                      + str(l))
 
-
-            plt.title(ititle + ' vs Prob. - ' + t + '\n' + 'Lead: ' + str(l))
             plt.tight_layout()
+
             if save:
-                plt.savefig(DirAndFile(out_dir, dir_results, 'PROB',
-                                       [ititle, 'Lead', str(l)]))
+                plt.savefig(DirAndFile(out_dir, dir_results, 'Prob',
+                                       [t, ititle, 'vs_N34', 'Lead', str(l)]))
             else:
                 plt.show()
 
-        print('Done mean_prob plots')
-
-        # ---------------------------------------------------------------------#
-        # All probs. ----------------------------------------------------------#
-        for i, ititle in zip(indices, indices_name):
-            fig = plt.figure(dpi=dpi)
-            ax = fig.add_axes([0.1, 0.1, 0.8, 0.8], projection='3d')
-            try:
-                i = i.values
-            except:
-                pass
-            i = i[l::]
-            sd = np.std(i)
-            max = np.max(i) + sd/2
-            min = np.min(i) - sd/2
-
-
-            for x, y_vals in zip(i, above_probs):
-                ax.scatter([x] * len(y_vals), [1] * len(y_vals), y_vals,
-                           color='dodgerblue', marker='^', s=10)
-
-            for x, y_vals in zip(i, norm_probs):
-                ax.scatter([x] * len(y_vals), [2] * len(y_vals), y_vals,
-                           color='forestgreen', marker='s', s=10)
-
-            for x, y_vals in zip(i, below_probs):
-                ax.scatter([x] * len(y_vals),[3] * len(y_vals), y_vals,
-                           color='firebrick', marker='v', s=10)
-
-            ax.scatter([], [], [], color='dodgerblue', marker='^',
-                       label='Above')
-            ax.scatter([], [], [], color='forestgreen', marker='s',
-                       label='Normal')
-            ax.scatter([], [], [], color='firebrick', marker='v', label='Below')
-            ax.view_init(elev=20, azim=-45)
-
-            ax.set_yticks([1, 2, 3])
-            ax.set_yticklabels(['Above', 'Normal', 'Below'])
-
-            plt.legend()
-            ax.set_zlim(0, .8)
-            plt.xlim((min, max))
-            ax.set_zlabel('Prob.', size=12)
-            ax.set_xlabel(ititle, size=12)
-
-            plt.title(ititle + ' vs Prob. - ' + t + '\n' + 'Lead: ' + str(l))
-            plt.tight_layout()
-            if save:
-                plt.savefig(DirAndFile(out_dir, dir_results2, 'Prob3D',
-                                       [t, ititle, 'Lead', str(l)]))
-            else:
-                plt.show()
-
-        print('Done all_prob plot')
 
 ################################################################################
 print('#######################################################################')
 print('done')
+print('out_dir = ' + out_dir + dir_results )
 print('#######################################################################')
 ################################################################################
