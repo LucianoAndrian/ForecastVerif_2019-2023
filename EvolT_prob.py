@@ -17,9 +17,9 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from Funciones import CreateDirectory, SelectFilesNMME, DMI, SameDateAs, \
-    LeadMonth
+    LeadMonth, DirAndFile
 ################################################################################
-save = False
+save = True
 test = False # solo va computar una region
 lead = [0, 1, 2, 3]
 CreateDirectory(out_dir, dir_results)
@@ -31,16 +31,16 @@ else:
     dpi = 50
 
 lon_regiones = [[296, 296 + 20], [296, 296 + 20], [296, 300 + 20],
-                [295, 295 + 10], [290, 290 + 5]]
+                [295, 295 + 10]]
 lat_regiones = [[-40, -40 + 20], [-40, -40 + 10], [-30, -30 + 17],
-                [-40, -40 + 15], [-40, -40 + 20]]
-titulos = ['SESA', 'S-SESA', 'N-SESA', 'NEA', 'NOA']
+                [-40, -40 + 15]]
+titulos = ['SESA', 'S-SESA', 'N-SESA', 'NEA']
 try:
     if test:
         lon_regiones = [[296, 296 + 20]]
         lat_regiones = [[-40, -40 + 20]]
         titulos = ['SESA']
-        lead = [0, 2]
+        lead = [0, 1, 2]
         print('##########################################################')
         print('<<<<<<<<<<<<<<<<<<<<<<<<<< TEST >>>>>>>>>>>>>>>>>>>>>>>>>>')
         print('-----------------------Una sola region--------------------')
@@ -51,7 +51,7 @@ except:
 ################################################################################
 def Proc(array):
     serie = np.reshape(array, array.size)
-    serie_mean = serie.mean()
+    serie_mean = np.nanmean(serie)
     return serie, serie_mean
 ################################################################################
 # NMME forecast
@@ -178,9 +178,8 @@ for ln, lt, t in zip(lon_regiones, lat_regiones, titulos):
                   loc='upper left')
 
         if save:
-            plt.savefig(
-                out_dir + '/' + dir_results + '/' + 'EvolT' + '_' + t +
-                '_lead_' + str(l) + '.jpg', dpi=dpi)
+            plt.savefig(DirAndFile(out_dir, dir_results, 'EvolT',
+                                   [t, 'Lead', str(l)]), dpi=dpi)
             plt.close('all')
         else:
             plt.show()

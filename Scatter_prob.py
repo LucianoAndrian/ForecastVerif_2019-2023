@@ -5,16 +5,21 @@ Scatter plot entre la magnitud de los índices y la probabilidad pronostica
 nmme_pronos = '/pikachu/datos/luciano.andrian/verif_2019_2023/nmme_pronos/'
 dir = '/pikachu/datos/luciano.andrian/verif_2019_2023/salidas/'
 out_dir = '/pikachu/datos/luciano.andrian/verif_2019_2023/salidas/scatter/'
+dir_results = 'prob_vs_indices'
+dir_results2 = 'prob_vs_indices_3d'
 ################################################################################
 import xarray as xr
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from Funciones import MakeMask, SelectFilesNMME, DMI, SameDateAs, LeadMonth
+from Funciones import CreateDirectory, SelectFilesNMME, DMI, SameDateAs, \
+    LeadMonth, DirAndFile
 ################################################################################
 save = True
 test = False # solo va computar una region
 lead = [0, 1, 2, 3]
+CreateDirectory(out_dir, dir_results)
+CreateDirectory(out_dir, dir_results2)
 ################################################################################
 # some sets
 if save:
@@ -23,10 +28,10 @@ else:
     dpi = 100
 
 lon_regiones = [[296, 296 + 20], [296, 296 + 20], [296, 300 + 20],
-                [295, 295 + 10], [290, 290 + 5]]
+                [295, 295 + 10]]
 lat_regiones = [[-40, -40 + 20], [-40, -40 + 10], [-30, -30 + 17],
-                [-40, -40 + 15], [-40, -40 + 20]]
-titulos = ['SESA', 'S-SESA', 'N-SESA', 'NEA', 'NOA']
+                [-40, -40 + 15]]
+titulos = ['SESA', 'S-SESA', 'N-SESA', 'NEA']
 try:
     if test:
         lon_regiones = [[296, 296 + 20]]
@@ -43,7 +48,7 @@ except:
 ################################################################################
 def Proc(array):
     serie = np.reshape(array, array.size)
-    serie_mean = serie.mean()
+    serie_mean = np.nanmean(serie)
     return serie, serie_mean
 ################################################################################
 # NMME forecast
@@ -168,9 +173,8 @@ for ln, lt, t in zip(lon_regiones, lat_regiones, titulos):
             plt.title(ititle + ' vs Prob. - ' + t + '\n' + 'Lead: ' + str(l))
             plt.tight_layout()
             if save:
-                plt.savefig(
-                    out_dir + t + '_' + ititle + '_mean_prob_scatter_' + t +
-                    '_Lead_' + str(l) + '.jpg')
+                plt.savefig(DirAndFile(out_dir, dir_results, 'PROB',
+                                       [ititle, 'Lead', str(l)]))
             else:
                 plt.show()
 
@@ -222,9 +226,8 @@ for ln, lt, t in zip(lon_regiones, lat_regiones, titulos):
             plt.title(ititle + ' vs Prob. - ' + t + '\n' + 'Lead: ' + str(l))
             plt.tight_layout()
             if save:
-                plt.savefig(
-                    out_dir + t + '_' + ititle + '_prob_scatter_' + t + '_Lead_'
-                    + str(l) + '.jpg')
+                plt.savefig(DirAndFile(out_dir, dir_results2, 'Prob3D',
+                                       [ititle, 'Lead', str(l)]))
             else:
                 plt.show()
 

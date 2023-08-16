@@ -5,14 +5,14 @@ Scatter plot entre la magnitud de 2 índices y la probabilidad pronostica
 nmme_pronos = '/pikachu/datos/luciano.andrian/verif_2019_2023/nmme_pronos/'
 dir = '/pikachu/datos/luciano.andrian/verif_2019_2023/salidas/'
 out_dir = '/pikachu/datos/luciano.andrian/verif_2019_2023/salidas/scatter/'
-dir_results = '3d_scatter'
+dir_results = '3d_index_vs_index'
 ################################################################################
 import xarray as xr
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from Funciones import SelectFilesNMME, DMI, SameDateAs, LeadMonth, \
-    CreateDirectory
+    CreateDirectory, DirAndFile
 ################################################################################
 save = True
 test = False # solo va computar una region
@@ -26,10 +26,10 @@ else:
     dpi = 100
 
 lon_regiones = [[296, 296 + 20], [296, 296 + 20], [296, 300 + 20],
-                [295, 295 + 10], [290, 290 + 5]]
+                [295, 295 + 10]]
 lat_regiones = [[-40, -40 + 20], [-40, -40 + 10], [-30, -30 + 17],
-                [-40, -40 + 15], [-40, -40 + 20]]
-titulos = ['SESA', 'S-SESA', 'N-SESA', 'NEA', 'NOA']
+                [-40, -40 + 15]]
+titulos = ['SESA', 'S-SESA', 'N-SESA', 'NEA']
 try:
     if test:
         lon_regiones = [[296, 296 + 20]]
@@ -46,7 +46,7 @@ except:
 ################################################################################
 def Proc(array):
     serie = np.reshape(array, array.size)
-    serie_mean = serie.mean()
+    serie_mean = np.nanmean(serie)
     return serie, serie_mean
 ################################################################################
 # NMME forecast
@@ -198,10 +198,9 @@ for ln, lt, t in zip(lon_regiones, lat_regiones, titulos):
                 plt.tight_layout()
 
                 if save:
-                    plt.savefig(
-                        out_dir + '/' + dir_results + '/' + t + '_' + ititle +
-                        '_vs_' + i2title +'_3d_prob_scatter_' + t + '_Lead_' +
-                        str(l) + '.jpg')
+                    plt.savefig(DirAndFile(out_dir, dir_results, '3D',
+                                           [t, ititle, 'vs', i2title, 'Lead',
+                                            str(l)]))
                 else:
                     plt.show()
 
