@@ -2,6 +2,7 @@ nmme_pronos = '/pikachu/datos/luciano.andrian/verif_2019_2023/nmme_pronos/'
 cmap_data = '/pikachu/datos/luciano.andrian/observado/ncfiles/data_no_detrend/'
 chirps_data = '/pikachu/datos/luciano.andrian/verif_2019_2023/chirps/'
 out_dir = '/pikachu/datos/luciano.andrian/verif_2019_2023/salidas/'
+dir_results = 'mapas_index'
 
 #https://psl.noaa.gov/data/gridded/data.cmap.html
 ################################################################################
@@ -17,15 +18,22 @@ import matplotlib.patches as mpatches
 from matplotlib import colors
 from Funciones import Nino34CPC, DMI # indices
 from Funciones import SelectFilesNMME, MakeMask, ChangeLons, ABNobs, \
-    RPSO, RPSF, BSO, BSF, CorrSP, Plot, SameDateAs
+    RPSO, RPSF, BSO, BSF, CorrSP, Plot, SameDateAs, DirAndFile, CreateDirectory
+
+import warnings
+from shapely.errors import ShapelyDeprecationWarning
+warnings.filterwarnings("ignore", category=ShapelyDeprecationWarning)
+warnings.filterwarnings("ignore")
 ################################################################################
 save = True
+plot_mapas = True
 mapa = False
 correlaciones = True
 test = False # = True solo va computar una region
 lead = [0, 1, 2, 3]
 if save:
     dpi = 300
+    CreateDirectory(out_dir, dir_results)
 else:
     dpi = 100
 ################################################################################
@@ -404,6 +412,60 @@ for l in lead:
     ComputeAndPlot('bss', True, dpi, save, l, test)
     ############################################################################
 
+    if plot_mapas:
+        print('Mapas RPSS y BSS...')
+        cbar = colors.ListedColormap(
+            ['#5FFE9B', '#FEB77E', '#FE675C', '#CA3E72',
+             '#782280', '#251255'])
+        cbar.set_over('#251254')
+        cbar.set_under('#5FFE9B')
+        cbar.set_bad(color='white')
+
+        rpss = [RPSS_cmap_nm, RPSS_chirps, BSS_cmap_nm, BSS_chirps]
+        dataset = ['CMAP', 'CHIRPS', 'CMAP', 'CHIRPS']
+        index = ['RPSS', 'RPSS', 'BSS', 'BSS']
+        anio = [2019, 2020, 2021, 2022, 2023]
+        # ---------------------------------------------------------------------#
+        # Por periodos --------------------------------------------------------#
+        for ds, ds_name, i in zip(rpss, dataset, index):
+            for a in anio:
+                try:
+                    aux = ds.sel(time=ds.time.dt.year.isin(a)).mean('time')
+
+                    titulo = i + ' - ' + str(a) + ' - ' + ds_name
+                    name_fig = DirAndFile(out_dir, dir_results, 'MAPA',
+                                   [str(a), i, 'Lead', str(l)])
+
+                    try:
+                        Plot(aux, aux['mask'], [-.1, 0, .1, .2, .3, .4, .5],
+                             save,
+                             dpi, titulo,
+                             name_fig, 'gray', cbar)
+                    except:
+                        Plot(aux, aux, [-.1, 0, .1, .2, .3, .4, .5], save,
+                             dpi, titulo, name_fig, 'k', cbar)
+
+                except:
+                    pass
+        # All 7/2019-4/2023 ---------------------------------------------------#
+        for ds, ds_name, i in zip(rpss, dataset, index):
+            try:
+                aux = ds.sel(time=slice('2019-07-01', '2023-12-01')).\
+                    mean('time')
+                titulo = i + ' - ' + '7/2019 - 3/2023' + ' - ' + ds_name
+                name_fig = DirAndFile(out_dir, dir_results, 'MAPA',
+                                      ['2019_2023', i, 'Lead', str(l)])
+
+                try:
+                    Plot(aux, aux['mask'], [-.1, 0, .1, .2, .3, .4, .5], save,
+                         dpi, titulo,
+                         name_fig, 'gray', cbar )
+                except:
+                    Plot(aux, aux, [-.1, 0, .1, .2, .3, .4, .5], save,
+                         dpi, titulo, name_fig, 'k', cbar)
+
+            except:
+                pass
 
 ################################################################################
 ################################################################################
@@ -454,64 +516,6 @@ if mapa:
         plt.savefig(out_dir + 'mapa.jpg', dpi=dpi)
     else:
         plt.show()
-
-if mapa:
-    print('Mapas RPSS...')
-    cbar = colors.ListedColormap(['#5FFE9B','#FEB77E', '#FE675C','#CA3E72',
-                                  '#782280','#251255'])
-    cbar.set_over('#251254')
-    cbar.set_under('#5FFE9B')
-    cbar.set_bad(color='white')
-
-    rpss = [RPSS_cmap_nm, RPSS_chirps_nm]
-    dataset = ['CMAP', 'CHIRPS']
-    seasons = ['MAM', 'JJA', 'SON', 'DJF']
-    mm = [3, 7, 10, 1]
-    anio = [2018, 2020, 2021, 2022, 2023]
-    #--------------------------------------------------------------------------#
-    # por season y año --------------------------------------------------------#
-    # for ds, ds_name in zip(rpss, dataset):
-    #     for m, s in zip(mm, seasons):
-    #         for a in anio:
-    #             try:
-    #                 if m==10:
-    #                     aux = ds.sel(time=str(a) + '-' + str(m) + '-01' )
-    #                 else:
-    #                     aux = ds.sel(time=str(a) + '-0' + str(m) + '-01')
-    #
-    #                 titulo = 'RPSS - ' + s + ' '+ str(a) + ' - ' + ds_name
-    #                 name_fig = 'rpss_' + s + '_'+ str(a) + '_' + ds_name
-    #
-    #                 Plot(aux, aux, [-.1,0,.1,.2,.3,.4,.5], save, dpi, titulo,
-    #                      name_fig, out_dir, 'gray', cbar)
-    #             except:
-    #                 pass
-
-    # Por periodos ------------------------------------------------------------#
-    for ds, ds_name in zip(rpss, dataset):
-        for a in anio:
-            try:
-                aux = ds.sel(time=ds.time.dt.year.isin(a)).mean('time')
-
-                titulo = 'RPSS - ' + str(a) + ' - ' + ds_name
-                name_fig = 'rpss_' + str(a) + '_' + ds_name
-
-                Plot(aux, aux, [-.1, 0, .1, .2, .3, .4, .5], save, dpi, titulo,
-                     name_fig, out_dir, 'gray', cbar)
-            except:
-                pass
-
-     # All 7/2019-4/2023 ------------------------------------------------------#
-    for ds, ds_name in zip(rpss, dataset):
-        try:
-            aux = ds.mean('time')
-            titulo = 'RPSS - ' + '7/2019 - 4/2023' + ' - ' + ds_name
-            name_fig = 'rpss_' + ds_name
-
-            Plot(aux, aux, [-.1, 0, .1, .2, .3, .4, .5], save, dpi, titulo,
-                 name_fig, out_dir, 'gray', cbar)
-        except:
-            pass
 ################################################################################
 print('done')
 ################################################################################

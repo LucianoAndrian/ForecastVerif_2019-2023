@@ -279,7 +279,7 @@ def CorrSP(serie1, serie2, pvalue=False):
         return np.round(pearsonr(serie1, serie2)[0],2)
 
 #------------------------------------------------------------------------------#
-def Plot(comp, comp_var, levels, save, dpi, title, name_fig, out_dir,
+def Plot(comp, comp_var, levels, save, dpi, title, name_fig,
          color_map, cmap):
 
     import matplotlib.pyplot as plt
@@ -327,7 +327,7 @@ def Plot(comp, comp_var, levels, save, dpi, title, name_fig, out_dir,
     plt.tight_layout()
 
     if save:
-        plt.savefig(out_dir + name_fig + '.jpg')
+        plt.savefig(name_fig + '.jpg')
         plt.close()
     else:
         plt.show()
