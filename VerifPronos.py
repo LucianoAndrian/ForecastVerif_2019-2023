@@ -27,7 +27,7 @@ warnings.filterwarnings("ignore")
 ################################################################################
 save = True
 plot_mapas = True
-mapa = False
+mapa = True
 correlaciones = True
 test = False # = True solo va computar una region
 lead = [0, 1, 2, 3]
@@ -42,11 +42,21 @@ def ComputeAndPlot(index, correlaciones, dpi, save, lead=0, test=False):
                           freq='M') + pd.DateOffset(days=1)
     dates = dates[lead:-1]
 
-    lon_regiones = [[296, 296 + 20], [296, 296 + 20], [296, 300 + 20],
-                    [295, 295 + 10], [290, 290 + 5]]
+    # lon_regiones = [[296, 296 + 20], [296, 296 + 20], [296, 300 + 20],
+    #                 [295, 295 + 10], [290, 290 + 5]]
+    # lat_regiones = [[-40, -40 + 20], [-40, -40 + 10], [-30, -30 + 17],
+    #                 [-40, -40 + 15], [-40, -40 + 20]]
+    #titulos = ['SESA', 'S-SESA', 'N-SESA', 'NEA', 'NOA']
+
+    lon_regiones = [[296, 296 + 20], [296, 296 + 20], [300, 300 + 20],
+                    [296, 296 + 8], [290, 290 + 5], [288, 288 + 8],
+                    [290, 290 + 5]]
+
     lat_regiones = [[-40, -40 + 20], [-40, -40 + 10], [-30, -30 + 17],
-                    [-40, -40 + 15], [-40, -40 + 20]]
-    titulos = ['SESA', 'S-SESA', 'N-SESA', 'NEA', 'NOA']
+                    [-35, -35 + 13], [-35, -35 + 15], [-55, -55 + 15],
+                    [-40, -40 + 10]]
+    titulos = ['SESA', 'S-SESA', 'N-SESA', 'NEA', 'NOA', 'Patagonia', 'Cuyo']
+
     try:
         if test:
             lon_regiones = [[296, 296 + 20]]
@@ -71,6 +81,7 @@ def ComputeAndPlot(index, correlaciones, dpi, save, lead=0, test=False):
     if correlaciones:
         print(' y correlaciones...')
     for ln, lt, t in zip(lon_regiones, lat_regiones, titulos):
+        data_frames = True
         aux = index_cmap.sel(lon=slice(ln[0], ln[1]), lat=slice(lt[1], lt[0]))
         aux2 = index_chirps.sel(lon=slice(ln[0], ln[1]), lat=slice(lt[1],lt[0]))
 
@@ -81,94 +92,108 @@ def ComputeAndPlot(index, correlaciones, dpi, save, lead=0, test=False):
         # index score
         aux_lnscmap = aux.mean(['lon', 'lat']).mask[:-1]
         lnscmap = ax.plot(dates, aux_lnscmap,
-                             color='blue',
+                             color='#FF0003',
                              label=index.upper() + '_CMAP2.5', linewidth=2)
 
         aux_lnschirps = aux2.mean(['lon', 'lat']).mask[:-1]
         lnschirps = ax.plot(dates, aux_lnschirps,
-                               color='orange',
+                               color='#FFA500',
                                label=index.upper() + '_CHIRPS1', linewidth=2)
 
         # indices
         aux_lndmi = dmi_aux.sel(time=slice('2019-01-01', '2023-03-01'))[lead:]
-        lndmi = ax2.plot(dates, aux_lndmi, label='DMI', color='forestgreen')
+        lndmi = ax2.plot(dates, aux_lndmi, label='DMI', color='#289E64')
 
-        lnn34 = ax2.plot(dates, n34[lead:], label='N34', color='firebrick')
+        lnn34 = ax2.plot(dates, n34[lead:], label='N34', color='#00C9ED')
 
         aux_lnsam = sam.mean_estimate.sel(
             time=slice('2019-01-01', '2023-03-01'))[lead:]
-        lnsam = ax2.plot(dates, aux_lnsam, label='SAM', color='k')
+        lnsam = ax2.plot(dates, aux_lnsam, label='SAM', color='#005EFF')
 
         aux_lnasam = asam.mean_estimate.sel(
             time=slice('2019-01-01', '2023-03-01'))[lead:]
-        lnasam = ax2.plot(dates, aux_lnasam, label='A-SAM', color='purple')
+        lnasam = ax2.plot(dates, aux_lnasam, label='A-SAM', color='#960B00')
 
         aux_lnssam = ssam.mean_estimate.sel(
             time=slice('2019-01-01', '2023-03-01'))[lead:]
-        lnssam = ax2.plot(dates, aux_lnssam, label='S-SAM', color='lime')
+        lnssam = ax2.plot(dates, aux_lnssam, label='S-SAM', color='#FF0088')
 
         if correlaciones:
-            c = {'Region': [t],
-                 index.upper() + '_CM-DMI': [CorrSP(aux_lnscmap.values,
-                                                    aux_lndmi.values)],
-                 index.upper() + '_CM-N34': [CorrSP(aux_lnscmap.values,
-                                                    n34[lead:])],
-                 index.upper() + '_CM-SAM': [CorrSP(aux_lnscmap.values,
-                                                    aux_lnsam.values)],
-                 index.upper() + '_CM-S_SAM': [CorrSP(aux_lnscmap.values,
-                                          aux_lnssam.values)],
-                 index.upper() + '_CM-A_SAM': [CorrSP(aux_lnscmap.values,
-                                          aux_lnasam.values)],
+            try:
+                c = {'Region': [t],
+                     index.upper() + '_CM-DMI': [CorrSP(aux_lnscmap.values,
+                                                        aux_lndmi.values)],
+                     index.upper() + '_CM-N34': [CorrSP(aux_lnscmap.values,
+                                                        n34[lead:])],
+                     index.upper() + '_CM-SAM': [CorrSP(aux_lnscmap.values,
+                                                        aux_lnsam.values)],
+                     index.upper() + '_CM-S_SAM': [CorrSP(aux_lnscmap.values,
+                                                          aux_lnssam.values)],
+                     index.upper() + '_CM-A_SAM': [CorrSP(aux_lnscmap.values,
+                                                          aux_lnasam.values)],
 
-                 index.upper() + '_CH-DMI': [
-                     CorrSP(aux_lnschirps.values[1:], aux_lndmi.values[1:])],
-                 index.upper() + '-CH-N34': [
-                     CorrSP(aux_lnschirps.values[1:], n34[lead+1:])],
-                 index.upper() + '_CH-SAM': [
-                     CorrSP(aux_lnschirps.values[1:], aux_lnsam.values[1:])],
-                 index.upper() + '-CHIRPS-S_SAM': [
-                     CorrSP(aux_lnschirps.values[1:],
-                            aux_lnssam.values[1:])],
-                 index.upper() + '_CH-A_SAM': [CorrSP(aux_lnschirps.values[1:],
-                                          aux_lnasam.values[1:])]
-                 }
+                     index.upper() + '_CH-DMI': [
+                         CorrSP(aux_lnschirps.values[1:],
+                                aux_lndmi.values[1:])],
+                     index.upper() + '-CH-N34': [
+                         CorrSP(aux_lnschirps.values[1:], n34[lead + 1:])],
+                     index.upper() + '_CH-SAM': [
+                         CorrSP(aux_lnschirps.values[1:],
+                                aux_lnsam.values[1:])],
+                     index.upper() + '-CHIRPS-S_SAM': [
+                         CorrSP(aux_lnschirps.values[1:],
+                                aux_lnssam.values[1:])],
+                     index.upper() + '_CH-A_SAM': [
+                         CorrSP(aux_lnschirps.values[1:],
+                                aux_lnasam.values[1:])]
+                     }
 
-            if t == 'SESA':
-                c_df = pd.DataFrame(c)
-            else:
-                c_df = pd.concat([c_df, pd.DataFrame(c)], axis=0)
+                if t == 'SESA':
+                    c_df = pd.DataFrame(c)
+                else:
+                    c_df = pd.concat([c_df, pd.DataFrame(c)], axis=0)
 
-            c2 = {'Region': [t],
-                  index.upper() + '_CM-DMI': [
-                      CorrSP(aux_lnscmap.values, aux_lndmi.values, True)[1]],
-                  index.upper() + '_CM-N34': [CorrSP(aux_lnscmap.values,
-                                                     n34[lead:], True)[1]],
-                  index.upper() + '_CM-SAM': [
-                      CorrSP(aux_lnscmap.values, aux_lnsam.values, True)[1]],
-                  index.upper() + '_CM-S_SAM': [CorrSP(aux_lnscmap.values,
-                                           aux_lnssam.values, True)[1]],
-                  index.upper() + '_CM-A_SAM': [CorrSP(aux_lnscmap.values,
-                                           aux_lnasam.values, True)[1]],
+                c2 = {'Region': [t],
+                      index.upper() + '_CM-DMI': [
+                          CorrSP(aux_lnscmap.values, aux_lndmi.values, True)[
+                              1]],
+                      index.upper() + '_CM-N34': [CorrSP(aux_lnscmap.values,
+                                                         n34[lead:], True)[1]],
+                      index.upper() + '_CM-SAM': [
+                          CorrSP(aux_lnscmap.values, aux_lnsam.values, True)[
+                              1]],
+                      index.upper() + '_CM-S_SAM': [CorrSP(aux_lnscmap.values,
+                                                           aux_lnssam.values,
+                                                           True)[1]],
+                      index.upper() + '_CM-A_SAM': [CorrSP(aux_lnscmap.values,
+                                                           aux_lnasam.values,
+                                                           True)[1]],
 
-                  index.upper() + '_CH-DMI': [
-                      CorrSP(aux_lnschirps.values[1:], aux_lndmi.values[1:],
-                             True)[1]],
-                  index.upper() + '-CH-N34': [
-                      CorrSP(aux_lnschirps.values[1:], n34[1+lead:], True)[1]],
-                  index.upper() + '_CH-SAM': [
-                      CorrSP(aux_lnschirps.values[1:], aux_lnsam.values[1:],
-                             True)[1]],
-                  index.upper() + '-CHIRPS-S_SAM': [
-                      CorrSP(aux_lnschirps.values[1:],
-                             aux_lnssam.values[1:], True)[1]],
-                  index.upper() + '_CH-A_SAM': [CorrSP(aux_lnschirps.values[1:],
-                                           aux_lnasam.values[1:], True)[1]]
-                  }
+                      index.upper() + '_CH-DMI': [
+                          CorrSP(aux_lnschirps.values[1:], aux_lndmi.values[1:],
+                                 True)[1]],
+                      index.upper() + '-CH-N34': [
+                          CorrSP(aux_lnschirps.values[1:], n34[1 + lead:],
+                                 True)[1]],
+                      index.upper() + '_CH-SAM': [
+                          CorrSP(aux_lnschirps.values[1:], aux_lnsam.values[1:],
+                                 True)[1]],
+                      index.upper() + '-CHIRPS-S_SAM': [
+                          CorrSP(aux_lnschirps.values[1:],
+                                 aux_lnssam.values[1:], True)[1]],
+                      index.upper() + '_CH-A_SAM': [
+                          CorrSP(aux_lnschirps.values[1:],
+                                 aux_lnasam.values[1:], True)[1]]
+                      }
 
-            if t == 'SESA':
-                c2_df = pd.DataFrame(c2)
-            else:
-                c2_df = pd.concat([c2_df, pd.DataFrame(c2)], axis=0)
+                if t == 'SESA':
+                    c2_df = pd.DataFrame(c2)
+                else:
+                    c2_df = pd.concat([c2_df, pd.DataFrame(c2)], axis=0)
+            except:
+                print('NaN values in ' + t + ' with Lead' + str(lead))
+                data_frames = False
+
 
         ax.hlines(y=0, xmin=dates[0], xmax=dates[-1], color='gray')
         ax2.hlines(y=0, xmin=dates[0], xmax=dates[-1], color='gray')
@@ -194,7 +219,6 @@ def ComputeAndPlot(index, correlaciones, dpi, save, lead=0, test=False):
             plt.close('all')
         else:
             plt.show()
-
 
 
         fig = plt.figure(figsize=(10, 7), dpi=dpi)
@@ -243,16 +267,18 @@ def ComputeAndPlot(index, correlaciones, dpi, save, lead=0, test=False):
 
         if save:
             plt.savefig(out_dir + index.upper() + '_' + t + '_lead_' +
-                        '_wpp_anoms.jpg',
-                        dpi=dpi)
+                        str(lead) + '_wpp_anoms.jpg', dpi=dpi)
             plt.close('all')
         else:
             plt.show()
 
-    c_df.to_csv(out_dir + index.upper() + '_correlaciones2_lead_' + str(lead) +
-                '.txt', sep='\t', index=False, header=True)
-    c2_df.to_csv(out_dir + index.upper() + '_correlaciones2_pvalue_lead_' +
-                 str(lead) + '.txt', sep='\t', index=False, header=True)
+    if data_frames:
+        c_df.to_csv(out_dir + index.upper() + '_correlaciones2_lead_' +
+                    str(lead) + '.txt', sep='\t', index=False, header=True)
+
+        c2_df.to_csv(out_dir + index.upper() + '_correlaciones2_pvalue_lead_' +
+                     str(lead) + '.txt', sep='\t', index=False, header=True)
+
 
 
 # Open and set #################################################################
@@ -432,7 +458,8 @@ for l in lead:
                 try:
                     aux = ds.sel(time=ds.time.dt.year.isin(a)).mean('time')
 
-                    titulo = i + ' - ' + str(a) + ' - ' + ds_name
+                    titulo = i + ' - ' + str(a) + ' - ' + ds_name + ' Lead: ' +\
+                             str(l)
                     name_fig = DirAndFile(out_dir, dir_results, 'MAPA',
                                    [str(a), i, 'Lead', str(l)])
 
@@ -452,7 +479,8 @@ for l in lead:
             try:
                 aux = ds.sel(time=slice('2019-07-01', '2023-12-01')).\
                     mean('time')
-                titulo = i + ' - ' + '7/2019 - 3/2023' + ' - ' + ds_name
+                titulo = i + ' - ' + '7/2019 - 3/2023' + ' - ' + ds_name  +\
+                         ' Lead: ' + str(l)
                 name_fig = DirAndFile(out_dir, dir_results, 'MAPA',
                                       ['2019_2023', i, 'Lead', str(l)])
 
@@ -479,27 +507,45 @@ if mapa:
     crs_latlon = ccrs.PlateCarree()
     ax.set_extent([270, 330, -60, 20], crs_latlon)
 
-    ax.add_patch(mpatches.Rectangle(xy=[296, -40], width=20,
-        height=20,facecolor='gray', alpha=0.5, edgecolor='black', linewidth=1,
+    ax.add_patch(
+        mpatches.Rectangle(xy=[296, -40], width=20, height=20,
+                           facecolor='#DADADA', alpha=1, edgecolor='black',
+                           linewidth=2, transform=ccrs.PlateCarree()))
+
+    ax.add_patch(
+        mpatches.Rectangle(xy=[296, -40], width=20, height=10, facecolor='None',
+                           alpha=1, edgecolor='red', linewidth=2,
+                           transform=ccrs.PlateCarree()))
+
+    ax.add_patch(
+        mpatches.Rectangle(xy=[300, -30], width=20, height=17, facecolor='None',
+                           alpha=1, edgecolor='blue', linewidth=2,
         transform=ccrs.PlateCarree()))
 
-    ax.add_patch(mpatches.Rectangle(xy=[296, -40], width=20,
-        height=10,facecolor='red',alpha=0.5, edgecolor='red', linewidth=1,
-        transform=ccrs.PlateCarree()))
+    ax.add_patch(
+        mpatches.Rectangle(xy=[296, -35], width=8, height=13,
+                           facecolor='None', alpha=1, edgecolor='white',
+                           linewidth=2, transform=ccrs.PlateCarree()))
 
-    ax.add_patch(mpatches.Rectangle(xy=[300, -30], width=20,
-        height=17,facecolor='blue',alpha=0.5, edgecolor='blue', linewidth=1,
-        transform=ccrs.PlateCarree()))
+    ax.add_patch(
+        mpatches.Rectangle(xy=[290, -35], width=5, height=15,
+                           facecolor='None', alpha=1,
+                           edgecolor='dodgerblue', linewidth=2,
+                           transform=ccrs.PlateCarree()))
 
-    ax.add_patch(mpatches.Rectangle(xy=[295, -40], width=10, height=15,
-        facecolor='magenta', alpha=0.5, edgecolor='white', linewidth=1,
-        transform=ccrs.PlateCarree()))
+    ax.add_patch(
+        mpatches.Rectangle(xy=[288, -55], width=8, height=15,
+                           facecolor='None', alpha=1,
+                           edgecolor='green', linewidth=2,
+                           transform=ccrs.PlateCarree()))
 
-    ax.add_patch(mpatches.Rectangle(xy=[290, -40], width=5, height=20,
-        facecolor='dodgerblue', alpha=0.5, edgecolor='dodgerblue', linewidth=1,
-        transform=ccrs.PlateCarree()))
+    ax.add_patch(
+        mpatches.Rectangle(xy=[290, -40], width=5, height=10,
+                           facecolor='None', alpha=1,
+                           edgecolor='yellow', linewidth=2,
+                           transform=ccrs.PlateCarree()))
 
-    ax.add_feature(cartopy.feature.LAND, facecolor='lightgrey')
+    ax.add_feature(cartopy.feature.LAND, facecolor='white')
     ax.add_feature(cartopy.feature.COASTLINE)
     ax.add_feature(cartopy.feature.BORDERS)
     ax.gridlines(crs=crs_latlon, linewidth=0.3, linestyle='-')
