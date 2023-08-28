@@ -178,7 +178,7 @@ for ln, lt, t in zip(lon_regiones, lat_regiones, titulos):
             plt.tight_layout()
             if save:
                 plt.savefig(DirAndFile(out_dir, dir_results, 'PROB',
-                                       [ititle, 'Lead', str(l)]))
+                                       [t, ititle, 'Lead', str(l)]))
             else:
                 plt.show()
 

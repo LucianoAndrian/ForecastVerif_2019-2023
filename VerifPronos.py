@@ -234,10 +234,10 @@ def ComputeAndPlot(index, correlaciones, dpi, save, lead=0, test=False):
         aux_pp_CHIRPS = SameDateAs(aux_pp_CHIRPS, index_chirps)
 
         lnrpsscmap = ax.plot(dates, aux.mean(['lon', 'lat']).mask[:-1],
-                             color='blue',
+                             color='#FF0003',
                              label=index.upper() + '_CMAP2.5', linewidth=2)
         lnrpsschirps = ax.plot(dates, aux2.mean(['lon', 'lat']).mask[:-1],
-                               color='orange',
+                               color='#FFA500',
                                label=index.upper() + '_CHIRPS1', linewidth=2)
 
         ln_pp_CMAP = ax2.plot(dates,

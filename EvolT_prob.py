@@ -154,16 +154,17 @@ for ln, lt, t in zip(lon_regiones, lat_regiones, titulos):
 
         # indices
         lndmi = ax2.plot(dates, dmi[l::].values, label='DMI',
-                         color='forestgreen')
+                         color='#289E64')
 
-        lnn34 = ax2.plot(dates, n34[l::], label='N34', color='firebrick')
+        lnn34 = ax2.plot(dates, n34[l::], label='N34', color='#00C9ED')
 
-        lnsam = ax2.plot(dates, sam[l::].values, label='SAM', color='k')
+        lnsam = ax2.plot(dates, sam[l::].values, label='SAM', color='#005EFF')
 
         lnasam = ax2.plot(dates, asam[l::].values, label='A-SAM',
-                          color='purple')
+                          color='#960B00')
 
-        lnssam = ax2.plot(dates, ssam[l::].values, label='S-SAM', color='lime')
+        lnssam = ax2.plot(dates, ssam[l::].values, label='S-SAM',
+                          color='#FF0088')
 
         ax.hlines(y=0, xmin=dates[0], xmax=dates[-1], color='gray')
         ax2.hlines(y=0, xmin=dates[0], xmax=dates[-1], color='gray')
