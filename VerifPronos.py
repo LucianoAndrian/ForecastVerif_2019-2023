@@ -494,74 +494,7 @@ for l in lead:
 
             except:
                 pass
-
 ################################################################################
-################################################################################
-
-# Plot ------------------------------------------------------------------------#
-# Regiones
-if mapa:
-    print('plot regiones')
-    fig = plt.figure(figsize=(3, 4), dpi=100)
-    ax = plt.axes(projection=ccrs.PlateCarree(central_longitude=180))
-    crs_latlon = ccrs.PlateCarree()
-    ax.set_extent([270, 330, -60, 20], crs_latlon)
-
-    ax.add_patch(
-        mpatches.Rectangle(xy=[296, -40], width=20, height=20,
-                           facecolor='#DADADA', alpha=1, edgecolor='black',
-                           linewidth=2, transform=ccrs.PlateCarree()))
-
-    ax.add_patch(
-        mpatches.Rectangle(xy=[296, -40], width=20, height=10, facecolor='None',
-                           alpha=1, edgecolor='red', linewidth=2,
-                           transform=ccrs.PlateCarree()))
-
-    ax.add_patch(
-        mpatches.Rectangle(xy=[300, -30], width=20, height=17, facecolor='None',
-                           alpha=1, edgecolor='blue', linewidth=2,
-        transform=ccrs.PlateCarree()))
-
-    ax.add_patch(
-        mpatches.Rectangle(xy=[296, -35], width=8, height=13,
-                           facecolor='None', alpha=1, edgecolor='white',
-                           linewidth=2, transform=ccrs.PlateCarree()))
-
-    ax.add_patch(
-        mpatches.Rectangle(xy=[290, -35], width=5, height=15,
-                           facecolor='None', alpha=1,
-                           edgecolor='dodgerblue', linewidth=2,
-                           transform=ccrs.PlateCarree()))
-
-    ax.add_patch(
-        mpatches.Rectangle(xy=[288, -55], width=8, height=15,
-                           facecolor='None', alpha=1,
-                           edgecolor='green', linewidth=2,
-                           transform=ccrs.PlateCarree()))
-
-    ax.add_patch(
-        mpatches.Rectangle(xy=[290, -40], width=5, height=10,
-                           facecolor='None', alpha=1,
-                           edgecolor='yellow', linewidth=2,
-                           transform=ccrs.PlateCarree()))
-
-    ax.add_feature(cartopy.feature.LAND, facecolor='white')
-    ax.add_feature(cartopy.feature.COASTLINE)
-    ax.add_feature(cartopy.feature.BORDERS)
-    ax.gridlines(crs=crs_latlon, linewidth=0.3, linestyle='-')
-    ax.set_xticks(np.arange(270, 330, 10), crs=crs_latlon)
-    ax.set_yticks(np.arange(-60, 40, 20), crs=crs_latlon)
-    lon_formatter = LongitudeFormatter(zero_direction_label=True)
-    lat_formatter = LatitudeFormatter()
-    ax.xaxis.set_major_formatter(lon_formatter)
-    ax.yaxis.set_major_formatter(lat_formatter)
-    ax.tick_params(labelsize=7)
-    plt.title('Regiones', fontsize=10)
-    plt.tight_layout()
-    if save:
-        plt.savefig(out_dir + 'mapa.jpg', dpi=dpi)
-    else:
-        plt.show()
 ################################################################################
 print('done')
 ################################################################################
