@@ -1,5 +1,5 @@
 nmme_pronos = '/pikachu/datos/luciano.andrian/verif_2019_2023/nmme_pronos/'
-cmap_data = '/pikachu/datos/luciano.andrian/observado/ncfiles/data_no_detrend/'
+cmap_data = '/pikachu/datos/luciano.andrian/verif_2019_2023/cmap/'
 chirps_data = '/pikachu/datos/luciano.andrian/verif_2019_2023/chirps/'
 out_dir = '/pikachu/datos/luciano.andrian/verif_2019_2023/salidas/'
 dir_results = 'mapas_index'
