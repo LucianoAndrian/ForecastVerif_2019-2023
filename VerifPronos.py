@@ -11,15 +11,12 @@ import xarray as xr
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
-import cartopy.feature
-from cartopy.mpl.ticker import LongitudeFormatter, LatitudeFormatter
-import cartopy.crs as ccrs
-import matplotlib.patches as mpatches
 from matplotlib import colors
-from Funciones import Nino34CPC, DMI # indices
+from Funciones import DMI
 from Funciones import SelectFilesNMME, MakeMask, ChangeLons, ABNobs, \
-    RPSO, RPSF, BSO, BSF, CorrSP, Plot, SameDateAs, DirAndFile, CreateDirectory
-
+    RPSO, RPSF, BSO, BSF, CorrSP, Plot, SameDateAs, DirAndFile, \
+    CreateDirectory, OpenRegiones
+from dateutil.relativedelta import relativedelta
 import warnings
 from shapely.errors import ShapelyDeprecationWarning
 warnings.filterwarnings("ignore", category=ShapelyDeprecationWarning)
@@ -27,7 +24,6 @@ warnings.filterwarnings("ignore")
 ################################################################################
 save = True
 plot_mapas = True
-mapa = True
 correlaciones = True
 test = False # = True solo va computar una region
 lead = [0, 1, 2, 3]
@@ -37,31 +33,41 @@ if save:
 else:
     dpi = 100
 ################################################################################
-def ComputeAndPlot(index, correlaciones, dpi, save, lead=0, test=False):
-    dates = pd.date_range(start='2018-12-01', end='2023-04-01',
+def OpenRegiones(name):
+    try:
+        regiones = pd.read_csv(out_dir + name, sep=',', header=0)
+    except:
+        return print('Error al abrir el archivo')
+
+    nrwos = regiones.shape[0]
+
+    titulos = []
+    lon_regiones = []
+    lat_regiones = []
+    for n in range(0, nrwos):
+        titulos.append(regiones['region'][n])
+
+        aux_lon = [regiones['loni'][n], regiones['lonf'][n]]
+        aux_lat = [regiones['lati'][n], regiones['latf'][n]]
+
+        lon_regiones.append(aux_lon)
+        lat_regiones.append(aux_lat)
+
+    return titulos, lon_regiones, lat_regiones
+
+def ComputeAndPlot(index, correlaciones, dpi, save, lead=0, test=False,
+                   region_name='regiones_sa'):
+    dates = pd.date_range(start='2018-12-01', end=endtime,
                           freq='M') + pd.DateOffset(days=1)
-    dates = dates[lead:-1]
+    dates = dates[lead:]
 
-    # lon_regiones = [[296, 296 + 20], [296, 296 + 20], [296, 300 + 20],
-    #                 [295, 295 + 10], [290, 290 + 5]]
-    # lat_regiones = [[-40, -40 + 20], [-40, -40 + 10], [-30, -30 + 17],
-    #                 [-40, -40 + 15], [-40, -40 + 20]]
-    #titulos = ['SESA', 'S-SESA', 'N-SESA', 'NEA', 'NOA']
-
-    lon_regiones = [[296, 296 + 20], [296, 296 + 20], [300, 300 + 20],
-                    [296, 296 + 8], [290, 290 + 5], [288, 288 + 8],
-                    [290, 290 + 5]]
-
-    lat_regiones = [[-40, -40 + 20], [-40, -40 + 10], [-30, -30 + 17],
-                    [-35, -35 + 13], [-35, -35 + 15], [-55, -55 + 15],
-                    [-40, -40 + 10]]
-    titulos = ['SESA', 'S-SESA', 'N-SESA', 'NEA', 'NOA', 'Patagonia', 'Cuyo']
+    titulos, lon_regiones, lat_regiones = OpenRegiones(region_name + '.csv')
 
     try:
         if test:
-            lon_regiones = [[296, 296 + 20]]
-            lat_regiones = [[-40, -40 + 20]]
-            titulos = ['SESA']
+            lon_regiones = lon_regiones[0]
+            lat_regiones = lat_regiones[0]
+            titulos = titulos[0]
             print('##########################################################')
             print('<<<<<<<<<<<<<<<<<<<<<<<<<< TEST >>>>>>>>>>>>>>>>>>>>>>>>>>')
             print('-----------------------Una sola region--------------------')
@@ -90,32 +96,30 @@ def ComputeAndPlot(index, correlaciones, dpi, save, lead=0, test=False):
         ax2 = ax.twinx()
 
         # index score
-        aux_lnscmap = aux.mean(['lon', 'lat']).mask[:-1]
+        aux_lnscmap = aux.mean(['lon', 'lat']).mask
         lnscmap = ax.plot(dates, aux_lnscmap,
                              color='#FF0003',
                              label=index.upper() + '_CMAP2.5', linewidth=2)
 
-        aux_lnschirps = aux2.mean(['lon', 'lat']).mask[:-1]
+        aux_lnschirps = aux2.mean(['lon', 'lat']).mask
         lnschirps = ax.plot(dates, aux_lnschirps,
                                color='#FFA500',
                                label=index.upper() + '_CHIRPS1', linewidth=2)
 
         # indices
-        aux_lndmi = dmi_aux.sel(time=slice('2019-01-01', '2023-03-01'))[lead:]
+        aux_lndmi = dmi[lead:]
         lndmi = ax2.plot(dates, aux_lndmi, label='DMI', color='#289E64')
 
-        lnn34 = ax2.plot(dates, n34[lead:], label='N34', color='#00C9ED')
+        aux_lnn34 = n34.oni[lead:]
+        lnn34 = ax2.plot(dates, aux_lnn34, label='N34', color='#00C9ED')
 
-        aux_lnsam = sam.mean_estimate.sel(
-            time=slice('2019-01-01', '2023-03-01'))[lead:]
+        aux_lnsam = sam.mean_estimate[lead:]
         lnsam = ax2.plot(dates, aux_lnsam, label='SAM', color='#005EFF')
 
-        aux_lnasam = asam.mean_estimate.sel(
-            time=slice('2019-01-01', '2023-03-01'))[lead:]
+        aux_lnasam = asam.mean_estimate[lead:]
         lnasam = ax2.plot(dates, aux_lnasam, label='A-SAM', color='#960B00')
 
-        aux_lnssam = ssam.mean_estimate.sel(
-            time=slice('2019-01-01', '2023-03-01'))[lead:]
+        aux_lnssam = ssam.mean_estimate[lead:]
         lnssam = ax2.plot(dates, aux_lnssam, label='S-SAM', color='#FF0088')
 
         if correlaciones:
@@ -124,7 +128,7 @@ def ComputeAndPlot(index, correlaciones, dpi, save, lead=0, test=False):
                      index.upper() + '_CM-DMI': [CorrSP(aux_lnscmap.values,
                                                         aux_lndmi.values)],
                      index.upper() + '_CM-N34': [CorrSP(aux_lnscmap.values,
-                                                        n34[lead:])],
+                                                        aux_lnn34)],
                      index.upper() + '_CM-SAM': [CorrSP(aux_lnscmap.values,
                                                         aux_lnsam.values)],
                      index.upper() + '_CM-S_SAM': [CorrSP(aux_lnscmap.values,
@@ -133,19 +137,19 @@ def ComputeAndPlot(index, correlaciones, dpi, save, lead=0, test=False):
                                                           aux_lnasam.values)],
 
                      index.upper() + '_CH-DMI': [
-                         CorrSP(aux_lnschirps.values[1:],
-                                aux_lndmi.values[1:])],
+                         CorrSP(aux_lnschirps.values,
+                                aux_lndmi.values)],
                      index.upper() + '-CH-N34': [
-                         CorrSP(aux_lnschirps.values[1:], n34[lead + 1:])],
+                         CorrSP(aux_lnschirps.values, aux_lnn34)],
                      index.upper() + '_CH-SAM': [
-                         CorrSP(aux_lnschirps.values[1:],
-                                aux_lnsam.values[1:])],
+                         CorrSP(aux_lnschirps.values,
+                                aux_lnsam.values)],
                      index.upper() + '-CHIRPS-S_SAM': [
-                         CorrSP(aux_lnschirps.values[1:],
-                                aux_lnssam.values[1:])],
+                         CorrSP(aux_lnschirps.values,
+                                aux_lnssam.values)],
                      index.upper() + '_CH-A_SAM': [
-                         CorrSP(aux_lnschirps.values[1:],
-                                aux_lnasam.values[1:])]
+                         CorrSP(aux_lnschirps.values,
+                                aux_lnasam.values)]
                      }
 
                 if t == 'SESA':
@@ -155,10 +159,9 @@ def ComputeAndPlot(index, correlaciones, dpi, save, lead=0, test=False):
 
                 c2 = {'Region': [t],
                       index.upper() + '_CM-DMI': [
-                          CorrSP(aux_lnscmap.values, aux_lndmi.values, True)[
-                              1]],
+                          CorrSP(aux_lnscmap.values, aux_lndmi.values, True)[1]],
                       index.upper() + '_CM-N34': [CorrSP(aux_lnscmap.values,
-                                                         n34[lead:], True)[1]],
+                                                         aux_lnn34, True)[1]],
                       index.upper() + '_CM-SAM': [
                           CorrSP(aux_lnscmap.values, aux_lnsam.values, True)[
                               1]],
@@ -170,20 +173,20 @@ def ComputeAndPlot(index, correlaciones, dpi, save, lead=0, test=False):
                                                            True)[1]],
 
                       index.upper() + '_CH-DMI': [
-                          CorrSP(aux_lnschirps.values[1:], aux_lndmi.values[1:],
+                          CorrSP(aux_lnschirps.values, aux_lndmi.values,
                                  True)[1]],
                       index.upper() + '-CH-N34': [
-                          CorrSP(aux_lnschirps.values[1:], n34[1 + lead:],
+                          CorrSP(aux_lnschirps.values, aux_lnn34.values,
                                  True)[1]],
                       index.upper() + '_CH-SAM': [
-                          CorrSP(aux_lnschirps.values[1:], aux_lnsam.values[1:],
+                          CorrSP(aux_lnschirps.values, aux_lnsam.values,
                                  True)[1]],
                       index.upper() + '-CHIRPS-S_SAM': [
-                          CorrSP(aux_lnschirps.values[1:],
-                                 aux_lnssam.values[1:], True)[1]],
+                          CorrSP(aux_lnschirps.values,
+                                 aux_lnssam.values, True)[1]],
                       index.upper() + '_CH-A_SAM': [
-                          CorrSP(aux_lnschirps.values[1:],
-                                 aux_lnasam.values[1:], True)[1]]
+                          CorrSP(aux_lnschirps.values,
+                                 aux_lnasam.values, True)[1]]
                       }
 
                 if t == 'SESA':
@@ -197,7 +200,11 @@ def ComputeAndPlot(index, correlaciones, dpi, save, lead=0, test=False):
 
         ax.hlines(y=0, xmin=dates[0], xmax=dates[-1], color='gray')
         ax2.hlines(y=0, xmin=dates[0], xmax=dates[-1], color='gray')
-        ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y %b'))
+        #ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y %b'))
+
+        plt.rcParams['date.converter'] = 'concise'
+        ax.xaxis.set_major_locator(
+            mdates.AutoDateLocator(minticks=20, maxticks=26))
         ax.grid()
         ax.set_ylim((-.4, .5))
         ax2.set_ylim((-1.5, 7))
@@ -220,7 +227,7 @@ def ComputeAndPlot(index, correlaciones, dpi, save, lead=0, test=False):
         else:
             plt.show()
 
-
+        ########################################################################
         fig = plt.figure(figsize=(10, 7), dpi=dpi)
         ax = fig.add_subplot(111)
         ax2 = ax.twinx()
@@ -233,26 +240,30 @@ def ComputeAndPlot(index, correlaciones, dpi, save, lead=0, test=False):
             lon=slice(ln[0], ln[1]), lat=slice(lt[0], lt[1]))
         aux_pp_CHIRPS = SameDateAs(aux_pp_CHIRPS, index_chirps)
 
-        lnrpsscmap = ax.plot(dates, aux.mean(['lon', 'lat']).mask[:-1],
+        lnrpsscmap = ax.plot(dates, aux.mean(['lon', 'lat']).mask,
                              color='#FF0003',
                              label=index.upper() + '_CMAP2.5', linewidth=2)
-        lnrpsschirps = ax.plot(dates, aux2.mean(['lon', 'lat']).mask[:-1],
+        lnrpsschirps = ax.plot(dates, aux2.mean(['lon', 'lat']).mask,
                                color='#FFA500',
                                label=index.upper() + '_CHIRPS1', linewidth=2)
 
         ln_pp_CMAP = ax2.plot(dates,
-                              aux_pp_CMAP.mean(['lon', 'lat']).precip[:-1],
+                              aux_pp_CMAP.mean(['lon', 'lat']).precip,
                               color='gray',
                               label='CMAP2.5', linewidth=2)
 
         ln_pp_CHIRPS = ax2.plot(dates,
-                                aux_pp_CHIRPS.mean(['lon', 'lat']).precip[:-1],
+                                aux_pp_CHIRPS.mean(['lon', 'lat']).precip,
                                 color='k',
                                 label='CHIPRS', linewidth=2)
 
         ax.hlines(y=0, xmin=dates[0], xmax=dates[-1], color='gray')
         ax2.hlines(y=0, xmin=dates[0], xmax=dates[-1], color='gray')
-        ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y %b'))
+
+        plt.rcParams['date.converter'] = 'concise'
+        ax.xaxis.set_major_locator(
+            mdates.AutoDateLocator(minticks=20, maxticks=26))
+
         ax.grid()
         ax.set_ylim((-.4, .5))
         ax2.set_ylim((-50, 150))
@@ -279,8 +290,23 @@ def ComputeAndPlot(index, correlaciones, dpi, save, lead=0, test=False):
         c2_df.to_csv(out_dir + index.upper() + '_correlaciones2_pvalue_lead_' +
                      str(lead) + '.txt', sep='\t', index=False, header=True)
 
+# ENDTIME ######################################################################
+# Fecha mas reciente para VERIFICACIÓN impuesta por el ONI:
+endtime = xr.open_dataset(out_dir + 'oni.nc').time[-1].values
+print('#######################################################################')
+print('<<<<<<<<<<<<<<<<<<< Verificación hasta: ' + str(endtime).split('T')[0] +
+      ' >>>>>>>>>>>>>>>>>>>>')
+print('#######################################################################')
 
+# para identificar el prono correspondiente
+anio = endtime.astype('datetime64[Y]').astype(int) + 1970
+mes = endtime.astype('datetime64[M]').astype(int) % 12 + 1
+endtime_str = f"{anio}{mes:02d}"
+# y el ultimo target correspondiente
 
+aux = endtime.astype('M8[D]').astype('O')
+targetime = aux + relativedelta(months=6)
+targetime = np.datetime64(targetime)
 # Open and set #################################################################
 # CMAP
 data = xr.open_dataset(cmap_data + 'pp_cmap.nc').__mul__(365/12) #dia
@@ -296,7 +322,7 @@ data = data.rolling(time=3, center=True).mean()
 data_clim_f = data.sel(time=slice('1990-01-01', '2020-12-01'))
 data_clim = data_clim_f.groupby('time.month').quantile([.33, .66], dim='time')
 
-data_verif = data.sel(time=slice('2019-01-01','2023-04-01'))
+data_verif = data.sel(time=slice('2019-01-01', endtime))
 
 data_anom = data.groupby('time.month') - \
             data_clim_f.groupby('time.month').mean()
@@ -305,21 +331,21 @@ data_anom = data_anom*MakeMask(data_anom, 'precip')
 ################################################################################
 # NMME forecast
 files = SelectFilesNMME(nmme_pronos, 'prate')
-files = files[:-8] # se descargaron tdo 2023 que no hay nada desde mayo
-# pronos desde 201901 hasta 202304 (52)
+# ultimo pronostico que que puede ser verificado
+posf = [i for i, prono in enumerate(files) if endtime_str in prono][0]
+files = files[0:posf+1]
 data_nmme = xr.open_mfdataset(files, decode_times=False, engine='netcdf4',
                               combine='nested', concat_dim='initial_time')
 data_nmme = data_nmme.rename({'initial_time':'time'}) # para mas adelante
-data_nmme['time'] = pd.date_range(start='2018-12-01', end='2023-04-01',
+data_nmme['time'] = pd.date_range(start='2018-12-01', end=endtime,
                                   freq='M') + pd.DateOffset(days=1)
-data_nmme['target'] = pd.date_range(start='2018-12-01', end='2023-10-01',
+data_nmme['target'] = pd.date_range(start='2018-12-01', end=targetime,
                                   freq='M') + pd.DateOffset(days=1)
 
 data_nmme25 = data_nmme.interp(lon=lon_cmap, lat=lat_cmap)
 data_nmme25 = data_nmme25.sel(lon=slice(270,330), lat=slice(20, -60))
 
 data_nmme25.load()
-
 ################################################################################
 # chirps
 data = xr.open_dataset(
@@ -345,28 +371,26 @@ data = data.interp(lon=data_nmme.lon, lat=np.arange(-50,50,1))
 # promedios trimestrales (VER)
 data_verif_ch = data.rolling(time=3, center=True).mean()
 data_verif_ch = data_verif_ch.sel(lon=slice(270,330), lat=slice(-60, 20))
+data_verif_ch = data_verif_ch.sel(time=slice('2019-01-01', endtime))
 
 data_anom_CHIRPS = data.groupby('time.month') - \
                    data_clim_f_ch.groupby('time.month').mean()
 data_anom_CHIRPS = data_anom_CHIRPS*MakeMask(data_anom_CHIRPS, 'precip')
-
+data_anom_CHIRPS = data_anom_CHIRPS.sel(time=slice('2019-01-01', endtime))
 ################################################################################
 # indices
 print('Indices DMI, N34, SAM, S-SAM y A-SAM')
-# SST actualizada
-# https://downloads.psl.noaa.gov/Datasets/noaa.ersst.v5/
-dmi, aux, dmi_aux = DMI(filter_bwa=False, start_per=1920, end_per=2023)
+# ONI Descargado, para no cambiar tdo el codigo n34 = ONI
+n34 = xr.open_dataset(out_dir + 'oni.nc')
 
-#pendiente, arreglar Ninio3.4CPC
-n34 = [0.7, 0.7, 0.7, 0.7, 0.5, 0.5, 0.3, 0.1, 0.2 ,0.3, 0.5 ,0.5, 0.5,	0.5,
-0.4, 0.2, -0.1, -0.3, -0.4, -0.6, -0.9, -1.2, -1.3, -1.2, -1.0, -0.9, -0.8,
--0.7, -0.5, -0.4, -0.4, -0.5, -0.7, -0.8, -1.0, -1.0, -1.0, -0.9, -1.0, -1.1,
--1.0, -0.9, -0.8, -0.9, -1.0, -1.0, -0.9, -0.8, -0.7, -0.4, -0.1]
+# DMI calculado a partir de ERSSTv5 actualizada
+aux0, aux, dmi = DMI(filter_bwa=False, start_per=1920, end_per=anio)
+dmi = SameDateAs(dmi, n34)
 
 # SAM
-sam = xr.open_dataset(out_dir + 'sam.nc')
-asam = xr.open_dataset(out_dir + 'asam.nc')
-ssam = xr.open_dataset(out_dir + 'ssam.nc')
+sam = SameDateAs(xr.open_dataset(out_dir + 'sam.nc'), n34)
+asam = SameDateAs(xr.open_dataset(out_dir + 'asam.nc'), n34)
+ssam = SameDateAs(xr.open_dataset(out_dir + 'ssam.nc'), n34)
 ################################################################################
 
 # En que categoría está lo observado según la climatología
@@ -434,8 +458,8 @@ for l in lead:
     BSS_chirps = BSS_chirps*MakeMask(BSS_chirps)
 
     ############################################################################
-    ComputeAndPlot('rpss', True, dpi, save, l,test)
-    ComputeAndPlot('bss', True, dpi, save, l, test)
+    ComputeAndPlot('rpss', True, dpi, save, l,test, 'regiones_sa')
+    ComputeAndPlot('bss', True, dpi, save, l, test, 'regiones_sa')
     ############################################################################
 
     if plot_mapas:

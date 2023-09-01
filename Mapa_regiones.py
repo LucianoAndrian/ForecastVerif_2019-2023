@@ -6,6 +6,7 @@ out_dir = '/pikachu/datos/luciano.andrian/verif_2019_2023/salidas/'
 dir_results = 'mapas_index'
 ################################################################################
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 import cartopy.feature
 from cartopy.mpl.ticker import LongitudeFormatter, LatitudeFormatter
@@ -24,27 +25,37 @@ if save:
 else:
     dpi = 100
 ################################################################################
+lon_regiones_sa = [[296, 296 + 10], [285, 285 + 8]]
+lat_regiones_sa = [[-39, -39 + 14], [-40, -40 + 10]]
+names_regiones_sa = ['SESA', 'Cuyo-Chile']
+
+################################################################################
 # Plot regiones SA ------------------------------------------------------------#
 print('plot regiones')
-fig = plt.figure(figsize=(3, 4), dpi=100)
+fig = plt.figure(figsize=(3, 4), dpi=dpi)
 ax = plt.axes(projection=ccrs.PlateCarree(central_longitude=180))
 crs_latlon = ccrs.PlateCarree()
 ax.set_extent([270, 330, -60, 20], crs_latlon)
 
-# SESA idem que en paper NMME
-ax.add_patch(mpatches.Rectangle(xy=[296, -39], width=10, height=14,
+for r, rname in enumerate(names_regiones_sa):
+    w = lon_regiones_sa[r][1] - lon_regiones_sa[r][0]
+    h = np.abs(lat_regiones_sa[r][0]) - np.abs(lat_regiones_sa[r][1])
+    ax.add_patch(mpatches.Rectangle(xy=[lon_regiones_sa[r][0],
+                                        lat_regiones_sa[r][0]],
+                                    width = w, height=h,
                                 facecolor='None', alpha=1, edgecolor='k',
                                 linewidth=2, transform=ccrs.PlateCarree()))
 
-# ~ Cujo - Chile
-ax.add_patch(mpatches.Rectangle(xy=[285, -40], width=8, height=10,
-                                facecolor='None', alpha=1, edgecolor='k',
-                                linewidth=2, transform=ccrs.PlateCarree()))
+    d = {'region': [rname],
+         'loni': [lon_regiones_sa[r][0]],
+         'lonf': [lon_regiones_sa[r][1]],
+         'lati': [lat_regiones_sa[r][0]],
+         'latf': [lat_regiones_sa[r][1]]}
 
-# # Este Brasil ?
-# ax.add_patch(mpatches.Rectangle(xy=[310, -24], width=10, height=12,
-#                                 facecolor='None', alpha=1, edgecolor='k',
-#                                 linewidth=2, transform=ccrs.PlateCarree()))
+    if r == 0:  # la primera
+        df = pd.DataFrame(d)
+    else:
+        df = df.append(pd.DataFrame(d), ignore_index=True)
 
 ax.add_feature(cartopy.feature.LAND, facecolor='white')
 ax.add_feature(cartopy.feature.COASTLINE)
@@ -64,5 +75,8 @@ if save:
 else:
     plt.show()
 
+df.to_csv(out_dir + 'regiones_sa.csv', index=False)
 # Plot regiones ARG------------------------------------------------------------#
+################################################################################
+print('done')
 ################################################################################

@@ -19,10 +19,14 @@ os.environ['HDF5_USE_FILE_LOCKING'] = 'FALSE'
 
 out_dir = '~/'
 ################################################################################
-def SelectFilesNMME(dir, variable):
+def SelectFilesNMME(dir, variable, size_check):
     files =  glob.glob(dir + variable + '_*_prob.adj.sea.nc')
-    return sorted(files, key=lambda x: x.split()[0])
 
+    # Solo archivos con tamaño mayor a 0
+    if size_check:
+        files = [file for file in files if os.path.getsize(file) > 0]
+
+    return sorted(files, key=lambda x: x.split()[0])
 # -----------------------------------------------------------------------------#
 def MakeMask(DataArray, dataname='mask'):
     """
@@ -877,3 +881,26 @@ def DirAndFile(out_dir, dir_results, common_name, names):
     file_name = f"{'_'.join(names)}_{common_name}.jpg"
     path = os.path.join(out_dir, dir_results, file_name)
     return path
+
+def OpenRegiones(name):
+    out_dir = '/pikachu/datos/luciano.andrian/verif_2019_2023/salidas/'
+    try:
+        regiones = pd.read_csv(out_dir + name, sep=',', header=0)
+    except:
+        return print('Error al abrir el archivo')
+
+    nrwos = regiones.shape[0]
+
+    titulos = []
+    lon_regiones = []
+    lat_regiones = []
+    for n in range(0, nrwos):
+        titulos.append(regiones['region'][n])
+
+        aux_lon = [regiones['loni'][n], regiones['lonf'][n]]
+        aux_lat = [regiones['lati'][n], regiones['latf'][n]]
+
+        lon_regiones.append(aux_lon)
+        lat_regiones.append(aux_lat)
+
+    return titulos, lon_regiones, lat_regiones

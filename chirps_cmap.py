@@ -55,7 +55,7 @@ if proc_2019_2023:
     files = glob.glob('/pikachu/datos/luciano.andrian/verif_2019_2023/'
                       'chirps/ch_*.nc')
     files = sorted(files, key=lambda x: x.split()[0])
-    files = files[-5:]
+    files = files[-6:]
     data = xr.open_mfdataset(files)
 
     data = data.resample(time='1MS').mean('time')

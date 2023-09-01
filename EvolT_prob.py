@@ -17,9 +17,15 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from Funciones import CreateDirectory, SelectFilesNMME, DMI, SameDateAs, \
-    LeadMonth, DirAndFile
+    LeadMonth, DirAndFile, OpenRegiones
+
+from dateutil.relativedelta import relativedelta
+import warnings
+from shapely.errors import ShapelyDeprecationWarning
+warnings.filterwarnings("ignore", category=ShapelyDeprecationWarning)
+warnings.filterwarnings("ignore")
 ################################################################################
-save = True
+save = False
 test = False # solo va computar una region
 lead = [0, 1, 2, 3]
 CreateDirectory(out_dir, dir_results)
@@ -30,20 +36,12 @@ if save:
 else:
     dpi = 50
 
-lon_regiones = [[296, 296 + 20], [296, 296 + 20], [300, 300 + 20],
-                [296, 296 + 8], [290, 290 + 5], [288, 288 + 8],
-                [290, 290 + 5]]
-
-lat_regiones = [[-40, -40 + 20], [-40, -40 + 10], [-30, -30 + 17],
-                [-35, -35 + 13], [-35, -35 + 15], [-55, -55 + 15],
-                [-40, -40 + 10]]
-titulos = ['SESA', 'S-SESA', 'N-SESA', 'NEA', 'NOA', 'Patagonia', 'Cuyo']
-
+titulos, lon_regiones, lat_regiones = OpenRegiones('regiones_sa.csv')
 try:
     if test:
-        lon_regiones = [[296, 296 + 20]]
-        lat_regiones = [[-40, -40 + 20]]
-        titulos = ['SESA']
+        lon_regiones = lon_regiones[0]
+        lat_regiones = lat_regiones[0]
+        titulos = titulos[0]
         lead = [0, 1, 2]
         print('##########################################################')
         print('<<<<<<<<<<<<<<<<<<<<<<<<<< TEST >>>>>>>>>>>>>>>>>>>>>>>>>>')
@@ -58,42 +56,43 @@ def Proc(array):
     serie_mean = np.nanmean(serie)
     return serie, serie_mean
 ################################################################################
+################################################################################
 # NMME forecast
-files = SelectFilesNMME(nmme_pronos, 'prate')
-files = files[:-8] # se descargaron tdo 2023 que no hay nada desde mayo
+files = SelectFilesNMME(nmme_pronos, 'prate', size_check=True)
+
+# fecha del ultimo prono
+anio = files[-1].split('_')[-2][0:4]
+mes = files[-1].split('_')[-2][-2:]
+endtime = np.datetime64(f'{anio}-{mes}-01')
+
+targetime = endtime.astype('M8[D]').astype('O') + relativedelta(months=6)
+targetime = np.datetime64(targetime)
+
 # pronos desde 201901 hasta 202304 (52)
 data_nmme = xr.open_mfdataset(files, decode_times=False, engine='netcdf4',
                               combine='nested', concat_dim='initial_time')
 data_nmme = data_nmme.rename({'initial_time':'time'}) # para mas adelante
-data_nmme['time'] = pd.date_range(start='2018-12-01', end='2023-04-01',
+data_nmme['time'] = pd.date_range(start='2018-12-01', end=endtime,
                                   freq='M') + pd.DateOffset(days=1)
-data_nmme['target'] = pd.date_range(start='2018-12-01', end='2023-10-01',
+data_nmme['target'] = pd.date_range(start='2018-12-01', end=targetime,
                                   freq='M') + pd.DateOffset(days=1)
-
+date_nmme = data_nmme.time.values
 ################################################################################
 # indices
 print('Indices DMI, N34, SAM, S-SAM y A-SAM')
-# SST actualizada
-# https://downloads.psl.noaa.gov/Datasets/noaa.ersst.v5/
-dmi, aux, dmi_aux = DMI(filter_bwa=False, start_per=1920, end_per=2023)
-
-#pendiente, arreglar Ninio3.4CPC
-n34 = [0.7, 0.7, 0.7, 0.7, 0.5, 0.5, 0.3, 0.1, 0.2 ,0.3, 0.5 ,0.5, 0.5,	0.5,
-0.4, 0.2, -0.1, -0.3, -0.4, -0.6, -0.9, -1.2, -1.3, -1.2, -1.0, -0.9, -0.8,
--0.7, -0.5, -0.4, -0.4, -0.5, -0.7, -0.8, -1.0, -1.0, -1.0, -0.9, -1.0, -1.1,
--1.0, -0.9, -0.8, -0.9, -1.0, -1.0, -0.9, -0.8, -0.7, -0.4, -0.1]
+# ONI Descargado, para no cambiar tdo el codigo n34 = ONI
+n34 = xr.open_dataset(dir + 'oni.nc')
+date_n34 = n34.time.values
 
 # SAM
-sam = xr.open_dataset(dir + 'sam.nc')['mean_estimate']
-asam = xr.open_dataset(dir + 'asam.nc')['mean_estimate']
-ssam = xr.open_dataset(dir + 'ssam.nc')['mean_estimate']
+sam = xr.open_dataset(dir + 'sam.nc').mean_estimate
+asam = xr.open_dataset(dir + 'asam.nc').mean_estimate
+ssam = xr.open_dataset(dir + 'ssam.nc').mean_estimate
+date_sam = sam.time.values
 
-sam = sam.sel(time=slice('2019-01-01', '2023-03-01'))
-asam = SameDateAs(asam, sam)
-ssam = SameDateAs(ssam, sam)
-dmi = SameDateAs(dmi_aux, sam)
-
-dates2 = sam.time.values
+# DMI calculado a partir de ERSSTv5 actualizada
+aux0, aux, dmi = DMI(filter_bwa=False, start_per=1920, end_per=anio)
+dmi = SameDateAs(dmi, sam)
 
 indices = [sam, asam, ssam, dmi, n34]
 indices_name = ['SAM', 'A-SAM', 'S-SAM', 'DMI', 'Niño3.4']
@@ -112,7 +111,7 @@ for ln, lt, t in zip(lon_regiones, lat_regiones, titulos):
 
         print('Lead: ' + str(l))
         # cada fecha
-        for d in dates2:
+        for d in date_nmme:
             if lead != 0:
                 d0 = LeadMonth(d, l)
             else:
@@ -140,7 +139,7 @@ for ln, lt, t in zip(lon_regiones, lat_regiones, titulos):
         # Plots ---------------------------------------------------------------#
         print('Plots by indices...')
         # Mean prob. ----------------------------------------------------------#
-        dates = sam.time.values[l::]
+        dates = date_nmme[l::]
         fig = plt.figure(figsize=(10, 7), dpi=dpi)
         ax = fig.add_subplot(111)
         ax2 = ax.twinx()
@@ -153,24 +152,31 @@ for ln, lt, t in zip(lon_regiones, lat_regiones, titulos):
                    label='Below')
 
         # indices
-        lndmi = ax2.plot(dates, dmi[l::].values, label='DMI',
+        lndmi = ax2.plot(date_sam[l::], dmi[l::].values, label='DMI',
                          color='#289E64')
 
-        lnn34 = ax2.plot(dates, n34[l::], label='N34', color='#00C9ED')
+        lnn34 = ax2.plot(date_n34[l::], n34.oni[l::].values, label='N34',
+                         color='#00C9ED')
 
-        lnsam = ax2.plot(dates, sam[l::].values, label='SAM', color='#005EFF')
+        lnsam = ax2.plot(date_sam[l::], sam[l::].values, label='SAM',
+                         color='#005EFF')
 
-        lnasam = ax2.plot(dates, asam[l::].values, label='A-SAM',
+        lnasam = ax2.plot(date_sam[l::], asam[l::].values, label='A-SAM',
                           color='#960B00')
 
-        lnssam = ax2.plot(dates, ssam[l::].values, label='S-SAM',
+        lnssam = ax2.plot(date_sam[l::], ssam[l::].values, label='S-SAM',
                           color='#FF0088')
 
         ax.hlines(y=0, xmin=dates[0], xmax=dates[-1], color='gray')
         ax2.hlines(y=0, xmin=dates[0], xmax=dates[-1], color='gray')
-        ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y %b'))
+        plt.rcParams['date.converter'] = 'concise'
+        ax.xaxis.set_major_locator(
+            mdates.AutoDateLocator(minticks=20, maxticks=26))
+
         ax.grid()
-        ax.set_ylim((0.1, .5))
+        ymax = np.round(np.max([mean_above_probs, mean_norm_probs,
+                                mean_below_probs]) + .10, 1)
+        ax.set_ylim((0.1, ymax))
         ax2.set_ylim((-1.5, 7))
         ax.set_ylabel('Probabilidad', fontsize=10)
         ax2.set_ylabel('índices', fontsize=10)
