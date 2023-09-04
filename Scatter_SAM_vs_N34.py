@@ -12,9 +12,15 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from Funciones import SelectFilesNMME, DMI, SameDateAs, LeadMonth, \
-    CreateDirectory, DirAndFile
+    CreateDirectory, DirAndFile, OpenRegiones
+
+from dateutil.relativedelta import relativedelta
+import warnings
+from shapely.errors import ShapelyDeprecationWarning
+warnings.filterwarnings("ignore", category=ShapelyDeprecationWarning)
+warnings.filterwarnings("ignore")
 ################################################################################
-save = True
+save = False
 test = False # solo va computar una region
 lead = [0, 1, 2, 3]
 CreateDirectory(out_dir, dir_results)
@@ -23,23 +29,15 @@ CreateDirectory(out_dir, dir_results)
 if save:
     dpi = 300
 else:
-    dpi = 100
+    dpi = 50
 
-lon_regiones = [[296, 296 + 20], [296, 296 + 20], [300, 300 + 20],
-                [296, 296 + 8], [290, 290 + 5], [288, 288 + 8],
-                [290, 290 + 5]]
-
-lat_regiones = [[-40, -40 + 20], [-40, -40 + 10], [-30, -30 + 17],
-                [-35, -35 + 13], [-35, -35 + 15], [-55, -55 + 15],
-                [-40, -40 + 10]]
-titulos = ['SESA', 'S-SESA', 'N-SESA', 'NEA', 'NOA', 'Patagonia', 'Cuyo']
-
+titulos, lon_regiones, lat_regiones = OpenRegiones('regiones_sa.csv')
 try:
     if test:
-        lon_regiones = [[296, 296 + 20]]
-        lat_regiones = [[-40, -40 + 20]]
-        titulos = ['SESA']
-        lead = [0]
+        lon_regiones = lon_regiones[0]
+        lat_regiones = lat_regiones[0]
+        titulos = titulos[0]
+        lead = [0, 1, 2]
         print('##########################################################')
         print('<<<<<<<<<<<<<<<<<<<<<<<<<< TEST >>>>>>>>>>>>>>>>>>>>>>>>>>')
         print('-----------------------Una sola region--------------------')
@@ -47,49 +45,56 @@ try:
         print('##########################################################')
 except:
     pass
+    pass
 ################################################################################
 def Proc(array):
     serie = np.reshape(array, array.size)
     serie_mean = (np.array(np.nanmean(serie))*8)**5
     return serie, serie_mean
 ################################################################################
+# endtime determinado por el SAM, último índice en actualizarse
+endtime = xr.open_dataset(dir + 'sam.nc').time.values[-1]
+################################################################################
 # NMME forecast
-files = SelectFilesNMME(nmme_pronos, 'prate')
-files = files[:-8] # se descargaron tdo 2023 que no hay nada desde mayo
-# pronos desde 201901 hasta 202304 (52)
+files = SelectFilesNMME(nmme_pronos, 'prate', size_check=True)
+
+# para identificar el prono correspondiente
+anio = endtime.astype('datetime64[Y]').astype(int) + 1970
+mes = endtime.astype('datetime64[M]').astype(int) % 12 + 1
+endtime_str = f"{anio}{mes:02d}"
+# y el ultimo target correspondiente
+
+aux = endtime.astype('M8[D]').astype('O')
+targetime = aux + relativedelta(months=6)
+targetime = np.datetime64(targetime)
+
+# ultimo pronostico que que puede ser verificado
+posf = [i for i, prono in enumerate(files) if endtime_str in prono][0]
+files = files[0:posf+1]
+
+# pronos desde 201901
 data_nmme = xr.open_mfdataset(files, decode_times=False, engine='netcdf4',
                               combine='nested', concat_dim='initial_time')
 data_nmme = data_nmme.rename({'initial_time':'time'}) # para mas adelante
-data_nmme['time'] = pd.date_range(start='2018-12-01', end='2023-04-01',
+data_nmme['time'] = pd.date_range(start='2018-12-01', end=endtime,
                                   freq='M') + pd.DateOffset(days=1)
-data_nmme['target'] = pd.date_range(start='2018-12-01', end='2023-10-01',
+data_nmme['target'] = pd.date_range(start='2018-12-01', end=targetime,
                                   freq='M') + pd.DateOffset(days=1)
-
 ################################################################################
 # indices
 print('Indices DMI, N34, SAM, S-SAM y A-SAM')
-# SST actualizada
-# https://downloads.psl.noaa.gov/Datasets/noaa.ersst.v5/
-dmi, aux, dmi_aux = DMI(filter_bwa=False, start_per=1920, end_per=2023)
-
-#pendiente, arreglar Ninio3.4CPC
-n34 = np.array([0.7, 0.7, 0.7, 0.7, 0.5, 0.5, 0.3, 0.1, 0.2 ,0.3, 0.5 ,0.5, 0.5,
-                0.5, 0.4, 0.2, -0.1, -0.3, -0.4, -0.6, -0.9, -1.2, -1.3, -1.2,
-                -1.0, -0.9, -0.8, -0.7, -0.5, -0.4, -0.4, -0.5, -0.7, -0.8,
-                -1.0, -1.0, -1.0, -0.9, -1.0, -1.1, -1.0, -0.9, -0.8, -0.9,
-                -1.0, -1.0, -0.9, -0.8, -0.7, -0.4, -0.1])
+# ONI Descargado, para no cambiar tdo el codigo n34 = ONI
+n34 = xr.open_dataset(dir + 'oni.nc')
+dates = n34.time.values
 
 # SAM
-sam = xr.open_dataset(dir + 'sam.nc')['mean_estimate']
-asam = xr.open_dataset(dir + 'asam.nc')['mean_estimate']
-ssam = xr.open_dataset(dir + 'ssam.nc')['mean_estimate']
+sam = xr.open_dataset(dir + 'sam.nc').mean_estimate
+asam = xr.open_dataset(dir + 'asam.nc').mean_estimate
+ssam = xr.open_dataset(dir + 'ssam.nc').mean_estimate
 
-sam = sam.sel(time=slice('2019-01-01', '2023-03-01'))
-asam = SameDateAs(asam, sam)
-ssam = SameDateAs(ssam, sam)
-dmi = SameDateAs(dmi_aux, sam)
-
-dates = sam.time.values
+# DMI calculado a partir de ERSSTv5 actualizada
+aux0, aux, dmi = DMI(filter_bwa=False, start_per=1920, end_per=anio)
+dmi = SameDateAs(dmi, sam)
 
 indices = [sam, asam, ssam]
 indices_name = ['SAM', 'A-SAM', 'S-SAM']
@@ -141,7 +146,7 @@ for ln, lt, t in zip(lon_regiones, lat_regiones, titulos):
         print('Plots by indices...')
         # Mean prob. ----------------------------------------------------------#
 
-        n34_aux = n34[l::]
+        n34_aux = n34.oni[l::]
         for i, ititle in zip(indices, indices_name):
             try:
                 i = i.values

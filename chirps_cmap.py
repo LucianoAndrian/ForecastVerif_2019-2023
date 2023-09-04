@@ -9,13 +9,13 @@ import os
 os.environ['HDF5_USE_FILE_LOCKING'] = 'FALSE'
 # https://data.chc.ucsb.edu/products/CHIRPS-2.0/global_daily/netcdf/p25/
 ################################################################################
-download = False
+download_chirps_full = False
 update = True
 proc = True
 proc_2019_2023 = True
 
 ################################################################################
-if download:
+if download_chirps_full:
     print('DOWNLOAD = TRUE!!!')
     for y in range(1981, 2024):
         url = 'https://data.chc.ucsb.edu/products/CHIRPS-2.0/global_daily/' \
@@ -65,8 +65,11 @@ if proc_2019_2023:
 
 
 # CMAP #########################################################################
-url = 'https://downloads.psl.noaa.gov/Datasets/cmap/enh/precip.mon.mean.nc'
-local_path = '/pikachu/datos/luciano.andrian/verif_2019_2023/cmap/pp_cmap.nc'
+if update:
+    url = 'https://downloads.psl.noaa.gov/Datasets/cmap/enh/precip.mon.mean.nc'
+    local_path = '/pikachu/datos/luciano.andrian/verif_2019_2023/cmap/' \
+                 'pp_cmap.nc'
+
 
 os.system(f'wget -O {local_path} {url}')
 ################################################################################

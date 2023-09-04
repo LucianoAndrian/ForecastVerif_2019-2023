@@ -291,8 +291,8 @@ def ComputeAndPlot(index, correlaciones, dpi, save, lead=0, test=False,
                      str(lead) + '.txt', sep='\t', index=False, header=True)
 
 # ENDTIME ######################################################################
-# Fecha mas reciente para VERIFICACIÓN impuesta por el ONI:
-endtime = xr.open_dataset(out_dir + 'oni.nc').time[-1].values
+# Fecha mas reciente para VERIFICACIÓN impuesta por el SAM:
+endtime = xr.open_dataset(dir + 'sam.nc').time.values[-1]
 print('#######################################################################')
 print('<<<<<<<<<<<<<<<<<<< Verificación hasta: ' + str(endtime).split('T')[0] +
       ' >>>>>>>>>>>>>>>>>>>>')

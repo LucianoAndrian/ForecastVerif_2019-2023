@@ -18,7 +18,7 @@ from shapely.errors import ShapelyDeprecationWarning
 warnings.filterwarnings("ignore", category=ShapelyDeprecationWarning)
 warnings.filterwarnings("ignore")
 ################################################################################
-save = False
+save = True
 if save:
     dpi = 300
     CreateDirectory(out_dir, dir_results)
@@ -78,5 +78,8 @@ else:
 df.to_csv(out_dir + 'regiones_sa.csv', index=False)
 # Plot regiones ARG------------------------------------------------------------#
 ################################################################################
+print('#######################################################################')
 print('done')
+print('out_dir = ' + out_dir + dir_results )
+print('#######################################################################')
 ################################################################################
