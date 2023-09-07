@@ -904,3 +904,94 @@ def OpenRegiones(name):
         lat_regiones.append(aux_lat)
 
     return titulos, lon_regiones, lat_regiones
+
+
+def RMean3(data):
+    aux = data.rolling(time=3, center=True).mean()
+    return aux[:-1]
+
+def Correlaciones(correlaciones_cmap, correlaciones_chirps,
+                  aux_lnscmap, aux_lnschirps, lead,
+                  aux_lnn34, aux_lndmi, aux_lnsam, aux_lnssam, aux_lnasam,
+                  index, t):
+    c_cmap = []
+    c2_cmap = []
+    c_chirps = []
+    c2_chirps = []
+    if correlaciones_cmap:
+        try:
+            c_cmap = {'Region': [t],
+                 index.upper() + '_CM-DMI': [CorrSP(aux_lnscmap.values,
+                                                    aux_lndmi.values)],
+                 index.upper() + '_CM-N34': [CorrSP(aux_lnscmap.values,
+                                                    aux_lnn34)],
+                 index.upper() + '_CM-SAM': [CorrSP(aux_lnscmap.values,
+                                                    aux_lnsam.values)],
+                 index.upper() + '_CM-S_SAM': [CorrSP(aux_lnscmap.values,
+                                                      aux_lnssam.values)],
+                 index.upper() + '_CM-A_SAM': [CorrSP(aux_lnscmap.values,
+                                                      aux_lnasam.values)]
+                 }
+
+            c2_cmap = {'Region': [t],
+                  index.upper() + '_CM-DMI': [
+                      CorrSP(aux_lnscmap.values, aux_lndmi.values, True)[1]],
+                  index.upper() + '_CM-N34': [CorrSP(aux_lnscmap.values,
+                                                     aux_lnn34, True)[1]],
+                  index.upper() + '_CM-SAM': [
+                      CorrSP(aux_lnscmap.values, aux_lnsam.values, True)[
+                          1]],
+                  index.upper() + '_CM-S_SAM': [CorrSP(aux_lnscmap.values,
+                                                       aux_lnssam.values,
+                                                       True)[1]],
+                  index.upper() + '_CM-A_SAM': [CorrSP(aux_lnscmap.values,
+                                                       aux_lnasam.values,
+                                                       True)[1]]
+                  }
+
+        except:
+            print('CMAP')
+            print('NaN values in ' + t + ' with Lead' + str(lead))
+
+    if correlaciones_chirps:
+        try:
+            c_chirps = {'Region': [t],
+                 index.upper() + '_CH-DMI': [
+                     CorrSP(aux_lnschirps.values,
+                            aux_lndmi.values)],
+                 index.upper() + '-CH-N34': [
+                     CorrSP(aux_lnschirps.values, aux_lnn34)],
+                 index.upper() + '_CH-SAM': [
+                     CorrSP(aux_lnschirps.values,
+                            aux_lnsam.values)],
+                 index.upper() + '-CHIRPS-S_SAM': [
+                     CorrSP(aux_lnschirps.values,
+                            aux_lnssam.values)],
+                 index.upper() + '_CH-A_SAM': [
+                     CorrSP(aux_lnschirps.values,
+                            aux_lnasam.values)]
+                 }
+
+            c2_chirps = {'Region': [t],
+                  index.upper() + '_CH-DMI': [
+                      CorrSP(aux_lnschirps.values, aux_lndmi.values,
+                             True)[1]],
+                  index.upper() + '-CH-N34': [
+                      CorrSP(aux_lnschirps.values, aux_lnn34.values,
+                             True)[1]],
+                  index.upper() + '_CH-SAM': [
+                      CorrSP(aux_lnschirps.values, aux_lnsam.values,
+                             True)[1]],
+                  index.upper() + '-CHIRPS-S_SAM': [
+                      CorrSP(aux_lnschirps.values,
+                             aux_lnssam.values, True)[1]],
+                  index.upper() + '_CH-A_SAM': [
+                      CorrSP(aux_lnschirps.values,
+                             aux_lnasam.values, True)[1]]
+                  }
+
+        except:
+            print('CHIRPS')
+            print('NaN values in ' + t + ' with Lead' + str(lead))
+
+    return c_cmap, c2_cmap, c_chirps, c2_chirps

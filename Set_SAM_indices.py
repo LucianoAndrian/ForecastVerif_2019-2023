@@ -36,7 +36,7 @@ except:
     sys.exit(1)
 #------------------------------------------------------------------------------#
 data['time'] = pd.to_datetime(data['time'])
-data = data.loc[data.time.dt.year>=2019]
+data = data.loc[data.time.dt.year>=2018]
 
 print('# Control #############################################################')
 skip_anios = []
@@ -46,9 +46,9 @@ for s in sam_component_name:
     sam_component = data.loc[(data['index'] == s) &
                              (data['lev'] == level)]
 
-    for i in range(0, data.time.dt.year[0]-2019):
-        anioi = 2019 + i
-        aniof = 2020 + i
+    for i in range(0, data.time.dt.year[0]-2018):
+        anioi = 2018 + i
+        aniof = 2019 + i
         aux = sam_component.time.loc[(data.time.dt.year >= anioi) &
                                      (data.time.dt.year < aniof)]
         l = len(aux)
@@ -74,7 +74,7 @@ if (l_count == 0) & (j_count == 0):
     print('###################################################################')
     print('Creando NCs...')
 
-    dates = xr.cftime_range(start='2019-01-01',
+    dates = xr.cftime_range(start='2018-01-01',
                             end=str(data.time[0]).split(' ')[0],
                             freq='MS')
 

@@ -12,8 +12,8 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from Funciones import SelectFilesNMME, DMI, SameDateAs, LeadMonth, \
-    CreateDirectory, DirAndFile, OpenRegiones
-
+    CreateDirectory, DirAndFile, OpenRegiones, RMean3
+import set_indices
 from dateutil.relativedelta import relativedelta
 import warnings
 from shapely.errors import ShapelyDeprecationWarning
@@ -52,8 +52,9 @@ def Proc(array):
     serie_mean = (np.array(np.nanmean(serie))*8)**5
     return serie, serie_mean
 ################################################################################
-# endtime determinado por el SAM, último índice en actualizarse
-endtime = xr.open_dataset(dir + 'sam.nc').time.values[-1]
+# endtime determinado por el ONI, se actualiza al trimestre anterior
+# e.g. al finalizar agosto actualiza ONI en JJA --> mm = 7
+endtime = xr.open_dataset(dir + 'oni.nc').time.values[-1]
 ################################################################################
 # NMME forecast
 files = SelectFilesNMME(nmme_pronos, 'prate', size_check=True)
@@ -81,20 +82,9 @@ data_nmme['time'] = pd.date_range(start='2018-12-01', end=endtime,
 data_nmme['target'] = pd.date_range(start='2018-12-01', end=targetime,
                                   freq='M') + pd.DateOffset(days=1)
 ################################################################################
-# indices
-print('Indices DMI, N34, SAM, S-SAM y A-SAM')
-# ONI Descargado, para no cambiar tdo el codigo n34 = ONI
-n34 = xr.open_dataset(dir + 'oni.nc')
+print('Set Indices ###########################################################')
+n34, dmi, sam, ssam, asam, endtime = set_indices.compute()
 dates = n34.time.values
-
-# SAM
-sam = xr.open_dataset(dir + 'sam.nc').mean_estimate
-asam = xr.open_dataset(dir + 'asam.nc').mean_estimate
-ssam = xr.open_dataset(dir + 'ssam.nc').mean_estimate
-
-# DMI calculado a partir de ERSSTv5 actualizada
-aux0, aux, dmi = DMI(filter_bwa=False, start_per=1920, end_per=anio)
-dmi = SameDateAs(dmi, sam)
 
 indices = [sam, asam, ssam]
 indices_name = ['SAM', 'A-SAM', 'S-SAM']
@@ -188,7 +178,6 @@ for ln, lt, t in zip(lon_regiones, lat_regiones, titulos):
                                        [t, ititle, 'vs_N34', 'Lead', str(l)]))
             else:
                 plt.show()
-
 
 ################################################################################
 print('#######################################################################')
