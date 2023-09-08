@@ -14,7 +14,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from Funciones import CreateDirectory, SelectFilesNMME, DMI, SameDateAs, \
     LeadMonth, DirAndFile, OpenRegiones
-
+import set_indices, nmme_update
 from dateutil.relativedelta import relativedelta
 import warnings
 from shapely.errors import ShapelyDeprecationWarning
@@ -54,10 +54,23 @@ def Proc(array):
     serie_mean = np.nanmean(serie)
     return serie, serie_mean
 ################################################################################
-# endtime determinado por el SAM, último índice en actualizarse
-endtime = xr.open_dataset(dir + 'sam.nc').time.values[-1]
+print('Set Indices ###########################################################')
+n34, dmi, sam, ssam, asam, endtime = set_indices.compute()
+dates = n34.time.values
+
+indices = [sam, asam, ssam, dmi, n34.oni]
+indices_name = ['SAM', 'A-SAM', 'S-SAM', 'DMI', 'Niño3.4']
+################################################################################
+# endtime determinado por el ONI, se actualiza al trimestre anterior
+# e.g. al finalizar agosto actualiza ONI en JJA --> mm = 7
+endtime = n34.time.values[-1]
+print('#######################################################################')
+print('<<<<<<<<<<<<<<<<<<<<< Valores hasta: ' + str(endtime).split('T')[0] +
+      ' >>>>>>>>>>>>>>>>>>>>>>')
+print('#######################################################################')
 ################################################################################
 # NMME forecast
+nmme_update.update()
 files = SelectFilesNMME(nmme_pronos, 'prate', size_check=True)
 
 # para identificar el prono correspondiente
@@ -83,25 +96,6 @@ data_nmme['time'] = pd.date_range(start='2018-12-01', end=endtime,
 data_nmme['target'] = pd.date_range(start='2018-12-01', end=targetime,
                                   freq='M') + pd.DateOffset(days=1)
 ################################################################################
-# indices
-print('Indices DMI, N34, SAM, S-SAM y A-SAM')
-# ONI Descargado, para no cambiar tdo el codigo n34 = ONI
-n34 = xr.open_dataset(dir + 'oni.nc')
-dates = n34.time.values
-
-# SAM
-sam = xr.open_dataset(dir + 'sam.nc').mean_estimate
-asam = xr.open_dataset(dir + 'asam.nc').mean_estimate
-ssam = xr.open_dataset(dir + 'ssam.nc').mean_estimate
-
-# DMI calculado a partir de ERSSTv5 actualizada
-aux0, aux, dmi = DMI(filter_bwa=False, start_per=1920, end_per=anio)
-dmi = SameDateAs(dmi, sam)
-
-indices = [sam, asam, ssam, dmi, n34.oni]
-indices_name = ['SAM', 'A-SAM', 'S-SAM', 'DMI', 'Niño3.4']
-################################################################################
-
 for ln, lt, t in zip(lon_regiones, lat_regiones, titulos):
     print(t)
     region = data_nmme.sel(lon=slice(ln[0], ln[1]), lat=slice(lt[1], lt[0]))

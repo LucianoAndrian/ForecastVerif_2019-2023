@@ -10,96 +10,102 @@ out_dir = '/pikachu/datos/luciano.andrian/verif_2019_2023/salidas/'
 ################################################################################
 import pandas as pd
 import xarray as xr
+from datetime import datetime
 import sys
 import os
 os.environ['HDF5_USE_FILE_LOCKING'] = 'FALSE'
 ################################################################################
 level = 700 #
-update = True
 test = False
 sam_component_name = ['sam', 'ssam', 'asam']
-# descarga #####################################################################
-if update:
-    try:
-        url = 'https://www.cima.fcen.uba.ar/~elio.campitelli/asymsam/data/' \
-              'sam_monthly.csv'
-        os.system('wget -O /pikachu/datos/luciano.andrian/verif_2019_2023/' 
-                  'sam_monthly.csv ' + url)
-    except:
-        print('Error al descargar sam_monthly.csv')
-# apertura #####################################################################
-try:
-    data = pd.read_csv(sam_dir, sep=',', header=0)
-except:
-    print('-----------------------')
-    print('el directorio no existe')
-    sys.exit(1)
-#------------------------------------------------------------------------------#
-data['time'] = pd.to_datetime(data['time'])
-data = data.loc[data.time.dt.year>=2018]
 
-print('# Control #############################################################')
-skip_anios = []
-l_count = 0
-j_count = 0
-for s in sam_component_name:
-    sam_component = data.loc[(data['index'] == s) &
-                             (data['lev'] == level)]
+def update():
+    current_month = datetime.now().month
+    data_last_month = xr.open_dataset(out_dir + 'sam.nc').time.values[-1].\
+                              astype('datetime64[M]').astype(int) % 12 + 1
 
-    for i in range(0, data.time.dt.year[0]-2018):
-        anioi = 2018 + i
-        aniof = 2019 + i
-        aux = sam_component.time.loc[(data.time.dt.year >= anioi) &
-                                     (data.time.dt.year < aniof)]
-        l = len(aux)
+    if (current_month - 1) != data_last_month:
+        print('SAM desactualizado')
+        print('Actualizando y seteando SAM')
+        # descarga #############################################################
+        try:
+            url = 'https://www.cima.fcen.uba.ar/~elio.campitelli/asymsam/' \
+                  'data/sam_monthly.csv'
+            os.system('wget -O /pikachu/datos/luciano.andrian/verif_2019_2023/' 
+                      'sam_monthly.csv ' + url)
+        except:
+            print('Error al descargar sam_monthly.csv')
+        # apertura #############################################################
+        try:
+            data = pd.read_csv(sam_dir, sep=',', header=0)
+        except:
+            print('-----------------------')
+            print('el directorio no existe')
+            sys.exit(1)
+        #----------------------------------------------------------------------#
+        data['time'] = pd.to_datetime(data['time'])
+        data = data.loc[data.time.dt.year>=2018]
 
-        # Todos los años tienen 12 meses?
-        if l != 12:
-            l_count = 1
-            skip_anios.append(aniof)
+        # Control ##############################################################
+        skip_anios = []
+        l_count = 0
+        j_count = 0
+        for s in sam_component_name:
+            sam_component = data.loc[(data['index'] == s) &
+                                     (data['lev'] == level)]
 
-        else:
-            # Los que tienen los 12 meses
-            # Estan en orden?
-            for j in range(0, 11):
-                m0 = pd.to_datetime(aux.values).month[j]
-                m1 = pd.to_datetime(aux.values).month[j + 1]
-                if m0 - m1 != 1:
-                    j_count = 1
-                    print(str(m0) + ' - ' + str(m1))
+            for i in range(0, data.time.dt.year[0]-2018):
+                anioi = 2018 + i
+                aniof = 2019 + i
+                aux = sam_component.time.loc[(data.time.dt.year >= anioi) &
+                                         (data.time.dt.year < aniof)]
+                l = len(aux)
+
+                # Todos los años tienen 12 meses?
+                if l != 12:
+                    l_count = 1
                     skip_anios.append(aniof)
 
-if (l_count == 0) & (j_count == 0):
-    print('Control OK')
-    print('###################################################################')
-    print('Creando NCs...')
+                else:
+                    # Los que tienen los 12 meses
+                # Estan en orden?
+                    for j in range(0, 11):
+                        m0 = pd.to_datetime(aux.values).month[j]
+                        m1 = pd.to_datetime(aux.values).month[j + 1]
+                        if m0 - m1 != 1:
+                            j_count = 1
+                            print(str(m0) + ' - ' + str(m1))
+                            skip_anios.append(aniof)
 
-    dates = xr.cftime_range(start='2018-01-01',
-                            end=str(data.time[0]).split(' ')[0],
-                            freq='MS')
+        if (l_count == 0) & (j_count == 0):
+            print('Control OK')
+            print('###################################################################')
+            print('Creando NCs...')
 
-    for s in sam_component_name:
-        sam_component = data.loc[(data['index'] == s) &
-                                 (data['lev'] == level)]
+            dates = xr.cftime_range(start='2018-01-01',
+                                    end=str(data.time[0]).split(' ')[0],
+                                    freq='MS')
 
-        sam_component = sam_component.drop(columns=['lev', 'index', 'time'])
-        sam_component = sam_component.iloc[::-1]
-        sam_component = sam_component.to_xarray()
+            for s in sam_component_name:
+                sam_component = data.loc[(data['index'] == s) &
+                                         (data['lev'] == level)]
 
-        sam_component['index'] = dates
-        sam_component = sam_component.rename({'index': 'time'})
+                sam_component = sam_component.drop(columns=['lev', 'index', 'time'])
+                sam_component = sam_component.iloc[::-1]
+                sam_component = sam_component.to_xarray()
 
-        if test:
-            print(s + '--------------------------')
-            print(sam_component)
+                sam_component['index'] = dates
+                sam_component = sam_component.rename({'index': 'time'})
+
+                if test:
+                    print(s + '--------------------------')
+                    print(sam_component)
+                else:
+                    sam_component.to_netcdf(out_dir + s + '.nc')
         else:
-            sam_component.to_netcdf(out_dir + s + '.nc')
-else:
-    print('Años incompletos: ' + str(skip_anios) )
-    print('NCs desactualizados...')
+            print('Años incompletos: ' + str(skip_anios) )
+            print('NCs desactualizados...')
 ################################################################################
-print('#######################################################################')
-print('done')
-print('out_dir = ' + out_dir )
-print('#######################################################################')
+if __name__ == "__main__":
+    update()
 ################################################################################

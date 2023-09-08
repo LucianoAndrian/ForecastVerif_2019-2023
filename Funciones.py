@@ -24,7 +24,7 @@ def SelectFilesNMME(dir, variable, size_check):
 
     # Solo archivos con tamaño mayor a 0
     if size_check:
-        files = [file for file in files if os.path.getsize(file) > 0]
+        files = [file for file in files if os.path.getsize(file) > 1]
 
     return sorted(files, key=lambda x: x.split()[0])
 # -----------------------------------------------------------------------------#

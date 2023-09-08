@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from Funciones import CreateDirectory, SelectFilesNMME, DMI, SameDateAs, \
     LeadMonth, DirAndFile, OpenRegiones
-
+import set_indices, nmme_update
 from dateutil.relativedelta import relativedelta
 import warnings
 from shapely.errors import ShapelyDeprecationWarning
@@ -56,46 +56,48 @@ def Proc(array):
     serie_mean = np.nanmean(serie)
     return serie, serie_mean
 ################################################################################
-################################################################################
-# NMME forecast
-files = SelectFilesNMME(nmme_pronos, 'prate', size_check=True)
-
-# fecha del ultimo prono
-anio = files[-1].split('_')[-2][0:4]
-mes = files[-1].split('_')[-2][-2:]
-endtime = np.datetime64(f'{anio}-{mes}-01')
-
-targetime = endtime.astype('M8[D]').astype('O') + relativedelta(months=6)
-targetime = np.datetime64(targetime)
-
-# pronos desde 201901 hasta 202304 (52)
-data_nmme = xr.open_mfdataset(files, decode_times=False, engine='netcdf4',
-                              combine='nested', concat_dim='initial_time')
-data_nmme = data_nmme.rename({'initial_time':'time'}) # para mas adelante
-data_nmme['time'] = pd.date_range(start='2018-12-01', end=endtime,
-                                  freq='M') + pd.DateOffset(days=1)
-data_nmme['target'] = pd.date_range(start='2018-12-01', end=targetime,
-                                  freq='M') + pd.DateOffset(days=1)
-date_nmme = data_nmme.time.values
-################################################################################
-# indices
-print('Indices DMI, N34, SAM, S-SAM y A-SAM')
-# ONI Descargado, para no cambiar tdo el codigo n34 = ONI
-n34 = xr.open_dataset(dir + 'oni.nc')
-date_n34 = n34.time.values
-
-# SAM
-sam = xr.open_dataset(dir + 'sam.nc').mean_estimate
-asam = xr.open_dataset(dir + 'asam.nc').mean_estimate
-ssam = xr.open_dataset(dir + 'ssam.nc').mean_estimate
-date_sam = sam.time.values
-
-# DMI calculado a partir de ERSSTv5 actualizada
-aux0, aux, dmi = DMI(filter_bwa=False, start_per=1920, end_per=anio)
-dmi = SameDateAs(dmi, sam)
+print('Set Indices ###########################################################')
+n34, dmi, sam, ssam, asam, endtime = set_indices.compute()
+dates_index = n34.time.values
 
 indices = [sam, asam, ssam, dmi, n34]
 indices_name = ['SAM', 'A-SAM', 'S-SAM', 'DMI', 'Niño3.4']
+################################################################################
+# endtime determinado por el ONI, se actualiza al trimestre anterior
+# e.g. al finalizar agosto actualiza ONI en JJA --> mm = 7
+print('#######################################################################')
+print('<<<<<<<<<<<<<<<<<<<<< indices hasta: ' + str(endtime).split('T')[0] +
+      ' >>>>>>>>>>>>>>>>>>>>>>')
+print('#######################################################################')
+################################################################################
+# NMME forecast
+nmme_update.update()
+files = SelectFilesNMME(nmme_pronos, 'prate', size_check=True)
+
+# endtime de los pronos libre
+endtime_nmme = files[-1].split('_')[-2]
+endtime_nmme = f"{endtime_nmme[:4]}-{endtime_nmme[4:6]}-01"
+endtime_nmme = np.datetime64(endtime_nmme)
+print('#######################################################################')
+print('<<<<<<<<<<<<<<<<<<<<<<< NMME hasta: ' + str(endtime_nmme).split('T')[0] +
+      ' >>>>>>>>>>>>>>>>>>>>>>>>')
+print('#######################################################################')
+
+# y el ultimo target correspondiente
+aux = endtime_nmme.astype('M8[D]').astype('O')
+targetime = aux + relativedelta(months=6)
+targetime = np.datetime64(targetime)
+
+# pronos desde 201901
+data_nmme = xr.open_mfdataset(files, decode_times=False, engine='netcdf4',
+                              combine='nested', concat_dim='initial_time')
+data_nmme = data_nmme.rename({'initial_time':'time'}) # para mas adelante
+data_nmme['time'] = pd.date_range(start='2018-12-01', end=endtime_nmme,
+                                  freq='M') + pd.DateOffset(days=1)
+data_nmme['target'] = pd.date_range(start='2018-12-01', end=targetime,
+                                  freq='M') + pd.DateOffset(days=1)
+
+date_nmme = data_nmme.time.values
 ################################################################################
 
 for ln, lt, t in zip(lon_regiones, lat_regiones, titulos):
@@ -152,19 +154,19 @@ for ln, lt, t in zip(lon_regiones, lat_regiones, titulos):
                    label='Below')
 
         # indices
-        lndmi = ax2.plot(date_sam[l::], dmi[l::].values, label='DMI',
+        lndmi = ax2.plot(dates_index[l::], dmi[l::].values, label='DMI',
                          color='#289E64')
 
-        lnn34 = ax2.plot(date_n34[l::], n34.oni[l::].values, label='N34',
+        lnn34 = ax2.plot(dates_index[l::], n34.oni[l::].values, label='N34',
                          color='#00C9ED')
 
-        lnsam = ax2.plot(date_sam[l::], sam[l::].values, label='SAM',
+        lnsam = ax2.plot(dates_index[l::], sam[l::].values, label='SAM',
                          color='#005EFF')
 
-        lnasam = ax2.plot(date_sam[l::], asam[l::].values, label='A-SAM',
+        lnasam = ax2.plot(dates_index[l::], asam[l::].values, label='A-SAM',
                           color='#960B00')
 
-        lnssam = ax2.plot(date_sam[l::], ssam[l::].values, label='S-SAM',
+        lnssam = ax2.plot(dates_index[l::], ssam[l::].values, label='S-SAM',
                           color='#FF0088')
 
         ax.hlines(y=0, xmin=dates[0], xmax=dates[-1], color='gray')

@@ -1,3 +1,31 @@
+"""
+Verifica los pronosticos desde 2019 hasta el presente con los índices RPSS
+y BSS.
+
+Se actualiza automaticamente cuando este disponible y/o sea necesario
+La actualización de las bases de datos puede desactivarse con update = False
+
+endtime_select = -1 | para verificar hasta el último trimestre disponible
+en el índice ONI. Es posible que no se pueda verificar este trimestre
+dependiendo de CMAP y CHIRPS. En ese caso, sólo se hará el grafico de
+evolucion temporal del skill. En este caso el valor mas reciente de BSS no se
+debe tener en cuenta.
+
+endtime_select = -n verifica hasta el trimestre -n donde deberia estar tdo
+actualizado.
+
+los índices se actualizan en set_indices sólo si es necesario
+los pronos del nmme se prueba descargar siempre que no esté ya descargo el
+pronostico del mes actual o el archivo de ese mes sea menor a 1mb (vacio o
+con algun error)
+"""
+################################################################################
+save = False
+update = True
+plot_mapas = True
+# para computar tdo hasta donde se pueda verificar, endtime_select = -2 -------#
+endtime_select = -1
+################################################################################
 nmme_pronos = '/pikachu/datos/luciano.andrian/verif_2019_2023/nmme_pronos/'
 cmap_data = '/pikachu/datos/luciano.andrian/verif_2019_2023/cmap/'
 chirps_data = '/pikachu/datos/luciano.andrian/verif_2019_2023/chirps/'
@@ -15,18 +43,13 @@ from matplotlib import colors
 from Funciones import SelectFilesNMME, MakeMask, ChangeLons, ABNobs, \
     RPSO, RPSF, BSO, BSF, Plot, SameDateAs, DirAndFile, \
     CreateDirectory, OpenRegiones, Correlaciones
-import set_indices, cmap, chirps
+import set_indices, cmap, chirps, nmme_update
 from dateutil.relativedelta import relativedelta
 import warnings
 from shapely.errors import ShapelyDeprecationWarning
 warnings.filterwarnings("ignore", category=ShapelyDeprecationWarning)
 warnings.filterwarnings("ignore")
-################################################################################
-save = True
-update = True
-plot_mapas = True
-# para computar tdo hasta donde se pueda verificar, endtime_select = -2 -------#
-endtime_select = -2
+
 ################################################################################
 test = False # = True solo va computar una region
 lead = [0, 1, 2, 3]
@@ -42,7 +65,7 @@ if save:
     CreateDirectory(out_dir, dir_results)
 else:
     dpi = 100
-################################################################################
+# Funciones ####################################################################
 def ComputeAndPlot(index, correlaciones_cmap, correlaciones_chirps,
                    dpi, save, lead=0, test=False, region_name='regiones_sa'):
     dates = pd.date_range(start='2018-12-01', end=endtime,
@@ -249,7 +272,7 @@ n34, dmi, sam, ssam, asam, endtime = set_indices.compute()
 endtime = n34.time.values[endtime_select]
 n34 = n34.oni
 if endtime_select != -1:
-    n34 = n34[:-1]
+    n34 = n34[:endtime_select+1]
     time0 = dmi.time.values[0]
     dmi = dmi.sel(time=slice(time0, endtime))
     sam = SameDateAs(sam, dmi)
@@ -312,6 +335,7 @@ data_anom = data_anom*MakeMask(data_anom, 'precip')
 
 ################################################################################
 print('NMME ------------------------------------------------------------------')
+nmme_update.update()
 files = SelectFilesNMME(nmme_pronos, 'prate', False)
 # ultimo pronostico que que puede ser verificado
 posf = [i for i, prono in enumerate(files) if endtime_str in prono][0]
