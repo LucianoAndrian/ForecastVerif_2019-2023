@@ -12,7 +12,7 @@ evolucion temporal del skill. En este caso el valor mas reciente de BSS no se
 debe tener en cuenta.
 
 endtime_select = -n verifica hasta el trimestre -n donde deberia estar tdo
-actualizado.
+actualizado. (n>1)
 
 los índices se actualizan en set_indices sólo si es necesario
 los pronos del nmme se prueba descargar siempre que no esté ya descargo el
@@ -100,8 +100,13 @@ def ComputeAndPlot(index, correlaciones_cmap, correlaciones_chirps,
         aux = index_cmap.sel(lon=slice(ln[0], ln[1]), lat=slice(lt[1], lt[0]))
         aux2 = index_chirps.sel(lon=slice(ln[0], ln[1]), lat=slice(lt[1],lt[0]))
 
+        plt.rcParams['date.converter'] = 'concise'
+
+
         fig = plt.figure(figsize=(10, 7), dpi=dpi)
         ax = fig.add_subplot(111)
+        ax.xaxis.set_major_locator(
+            mdates.AutoDateLocator(minticks=20, maxticks=26))
         ax2 = ax.twinx()
 
         # index score
@@ -163,9 +168,6 @@ def ComputeAndPlot(index, correlaciones_cmap, correlaciones_chirps,
         ax2.hlines(y=0, xmin=dates[0], xmax=dates[-1], color='gray')
         #ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y %b'))
 
-        plt.rcParams['date.converter'] = 'concise'
-        ax.xaxis.set_major_locator(
-            mdates.AutoDateLocator(minticks=20, maxticks=26))
         ax.grid()
         ax.set_ylim((-.4, .5))
         ax2.set_ylim((-1.5, 7))

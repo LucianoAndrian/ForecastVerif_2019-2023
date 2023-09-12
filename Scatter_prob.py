@@ -21,11 +21,11 @@ from shapely.errors import ShapelyDeprecationWarning
 warnings.filterwarnings("ignore", category=ShapelyDeprecationWarning)
 warnings.filterwarnings("ignore")
 ################################################################################
-save = False
+save = True
 test = False # solo va computar una region
 lead = [0, 1, 2, 3]
 CreateDirectory(out_dir, dir_results)
-CreateDirectory(out_dir, dir_results2)
+#CreateDirectory(out_dir, dir_results2)
 ################################################################################
 # some sets
 if save:
