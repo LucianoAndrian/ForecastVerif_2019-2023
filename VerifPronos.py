@@ -20,7 +20,7 @@ pronostico del mes actual o el archivo de ese mes sea menor a 1mb (vacio o
 con algun error)
 """
 ################################################################################
-save = False
+save = True
 update = True
 plot_mapas = True
 # para computar tdo hasta donde se pueda verificar, endtime_select = -2 -------#
@@ -42,7 +42,7 @@ import matplotlib.dates as mdates
 from matplotlib import colors
 from Funciones import SelectFilesNMME, MakeMask, ChangeLons, ABNobs, \
     RPSO, RPSF, BSO, BSF, Plot, SameDateAs, DirAndFile, \
-    CreateDirectory, OpenRegiones, Correlaciones
+    CreateDirectory, OpenRegiones, Correlaciones, ColorBySeason
 import set_indices, cmap, chirps, nmme_update
 from dateutil.relativedelta import relativedelta
 import warnings
@@ -109,6 +109,14 @@ def ComputeAndPlot(index, correlaciones_cmap, correlaciones_chirps,
             mdates.AutoDateLocator(minticks=20, maxticks=26))
         ax2 = ax.twinx()
 
+        # Colores para cada season
+        for d in dates:
+            color = ColorBySeason(d)
+            auxd = d.date()
+            d2 = np.datetime64(auxd + relativedelta(months=1))
+            ax.axvspan(d, d2 , alpha=0.2, color=color)
+
+
         # index score
         aux_lnscmap = aux.mean(['lon', 'lat']).mask
         lnscmap = ax.plot(dates, aux_lnscmap,
@@ -117,7 +125,7 @@ def ComputeAndPlot(index, correlaciones_cmap, correlaciones_chirps,
 
         aux_lnschirps = aux2.mean(['lon', 'lat']).mask
         lnschirps = ax.plot(dates, aux_lnschirps,
-                               color='#FFA500',
+                               color='#9800FF',
                                label=index.upper() + '_CHIRPS1', linewidth=2)
 
         # indices
@@ -195,6 +203,13 @@ def ComputeAndPlot(index, correlaciones_cmap, correlaciones_chirps,
         ax = fig.add_subplot(111)
         ax2 = ax.twinx()
 
+        # Colores para cada season
+        for d in dates:
+            color = ColorBySeason(d)
+            auxd = d.date()
+            d2 = np.datetime64(auxd + relativedelta(months=1))
+            ax.axvspan(d, d2 , alpha=0.2, color=color)
+
         aux_pp_CMAP = data_anom.sel(
             lon=slice(ln[0], ln[1]), lat=slice(lt[1], lt[0]))
         aux_pp_CMAP = SameDateAs(aux_pp_CMAP, index_cmap)
@@ -207,7 +222,7 @@ def ComputeAndPlot(index, correlaciones_cmap, correlaciones_chirps,
                              color='#FF0003',
                              label=index.upper() + '_CMAP2.5', linewidth=2)
         lnrpsschirps = ax.plot(dates, aux2.mean(['lon', 'lat']).mask,
-                               color='#FFA500',
+                               color='#9800FF',
                                label=index.upper() + '_CHIRPS1', linewidth=2)
 
         ln_pp_CMAP = ax2.plot(dates,

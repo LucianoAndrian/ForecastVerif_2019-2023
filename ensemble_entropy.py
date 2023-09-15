@@ -1,20 +1,20 @@
 """
-Evolucion temporal de los índices y "scatter" de las prob. de los puntos de
- grilla.
+Evolucion temporal de los índices y entropia del ensamble
+Mapas de entropia del ensamble anuales
 """
 ################################################################################
 nmme_pronos = '/pikachu/datos/luciano.andrian/verif_2019_2023/nmme_pronos/'
 dir = '/pikachu/datos/luciano.andrian/verif_2019_2023/salidas/'
-out_dir = '/pikachu/datos/luciano.andrian/verif_2019_2023/salidas/scatter/'
-dir_results = 'EvolT'
+out_dir = '/pikachu/datos/luciano.andrian/verif_2019_2023/salidas/'
+dir_results = 'Entropy'
 ################################################################################
 import xarray as xr
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
-from Funciones import CreateDirectory, SelectFilesNMME, \
-    LeadMonth, DirAndFile, OpenRegiones, ColorBySeason
+from Funciones import CreateDirectory, SelectFilesNMME, DirAndFile, \
+    OpenRegiones, ColorBySeason
 import set_indices, nmme_update
 from dateutil.relativedelta import relativedelta
 import warnings
@@ -96,6 +96,8 @@ data_nmme['target'] = pd.date_range(start='2018-12-01', end=targetime,
 
 date_nmme = data_nmme.time.values
 ################################################################################
+from Funciones import Entropy
+aux = Entropy(data_nmme)
 
 for ln, lt, t in zip(lon_regiones, lat_regiones, titulos):
     print(t)
@@ -103,37 +105,10 @@ for ln, lt, t in zip(lon_regiones, lat_regiones, titulos):
 
     # leads
     for l in lead:
-        mean_below_probs = []
-        mean_norm_probs = []
-        mean_above_probs = []
-
-
         print('Lead: ' + str(l))
-        # cada fecha
-        for d in date_nmme:
-            if lead != 0:
-                d0 = LeadMonth(d, l)
-            else:
-                d0 = d
 
-            try:
-                aux = region.sel(time=d0, target=d)
-
-                # below -------------------------------------------------------#
-                below, below_mean = Proc(aux.prob_below.values)
-                mean_below_probs.append(below_mean)
-
-                # norm --------------------------------------------------------#
-                norm, norm_mean = Proc(aux.prob_norm.values)
-                mean_norm_probs.append(norm_mean)
-
-                # above -------------------------------------------------------#
-                above, above_mean = Proc(aux.prob_above.values)
-                mean_above_probs.append(above_mean)
-
-            except:
-                print('Skip ' + np.datetime_as_string(d0, unit='M') + ' con' +
-                      ' target ' + np.datetime_as_string(d, unit='M'))
+        entropy = Entropy(region, l)
+        entropy = entropy.mean(['lon', 'lat'])
 
         # Plots ---------------------------------------------------------------#
         print('Plots by indices...')
@@ -153,13 +128,14 @@ for ln, lt, t in zip(lon_regiones, lat_regiones, titulos):
             d2 = np.datetime64(aux + relativedelta(months=1))
             ax.axvspan(d, d2 , alpha=0.2, color=color)
 
+        ax.plot(dates, entropy.values, color='k', marker='.',
+                   label='Entropy', linewidth=1, zorder=2)
 
-        ax.scatter(x=dates, y=mean_above_probs, color='dodgerblue', marker='^',
-                   label='Above')
-        ax.scatter(x=dates, y=mean_norm_probs, color='forestgreen', marker='s',
-                   label='Normal')
-        ax.scatter(x=dates, y=mean_below_probs, color='firebrick', marker='v',
-                   label='Below')
+        max_entropy = xr.where(np.round(entropy.values, 3) > np.round(
+            -1 * (0.33 * np.log(0.33) * 3), 3) - 0.01, entropy, np.nan).values
+
+        ax.scatter(x=dates, y=max_entropy, color='red', marker='.',
+                   label='Max. Entropy', zorder=3)
 
         # indices
         lndmi = ax2.plot(dates_index[l::], dmi[l::].values, label='DMI',
@@ -180,10 +156,10 @@ for ln, lt, t in zip(lon_regiones, lat_regiones, titulos):
         ax.hlines(y=0, xmin=dates[0], xmax=dates[-1], color='gray')
         ax2.hlines(y=0, xmin=dates[0], xmax=dates[-1], color='gray')
 
-        ax.grid()
-        ymax = np.round(np.max([mean_above_probs, mean_norm_probs,
-                                mean_below_probs]) + .10, 1)
-        ax.set_ylim((0.1, ymax))
+        ax.grid(zorder=1)
+        ymax = np.round(0.33*np.log(0.33)*3*-1,1) + 0.05
+        ymin = np.round(min(entropy.values),1) - 0.1
+        ax.set_ylim((ymin, ymax))
         ax2.set_ylim((-1.5, 7))
         ax.set_ylabel('Probabilidad', fontsize=10)
         ax2.set_ylabel('índices', fontsize=10)
@@ -196,14 +172,14 @@ for ln, lt, t in zip(lon_regiones, lat_regiones, titulos):
                   loc='upper left')
 
         if save:
-            plt.savefig(DirAndFile(out_dir, dir_results, 'EvolT',
+            plt.savefig(DirAndFile(out_dir, dir_results, 'Entropy',
                                    [t, 'Lead', str(l)]), dpi=dpi)
             plt.close('all')
         else:
             plt.show()
 
 
-        print('Done mean_prob plots')
+        print('Done plots')
 
 ################################################################################
 print('#######################################################################')
@@ -211,3 +187,4 @@ print('done')
 print('out_dir = ' + out_dir + dir_results )
 print('#######################################################################')
 ################################################################################
+

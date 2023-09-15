@@ -995,3 +995,55 @@ def Correlaciones(correlaciones_cmap, correlaciones_chirps,
             print('NaN values in ' + t + ' with Lead' + str(lead))
 
     return c_cmap, c2_cmap, c_chirps, c2_chirps
+
+#------------------------------------------------------------------------------#
+def Entropy(data_prono, lead=0):
+
+    """
+    Calculo del RPS forecast
+    :param data:
+    :return:
+    """
+    first = True
+    for d in data_prono.time.values:
+
+        if lead != 0:
+            d0 = LeadMonth(d, lead)
+        else:
+            d0 = d
+
+        try:
+            auxf = data_prono.sel(time=d0, target=d)
+            aux_entropy = -1* (auxf.prob_below*np.log(auxf.prob_below) +
+                               auxf.prob_norm*np.log(auxf.prob_norm) +
+                               auxf.prob_above * np.log(auxf.prob_above))
+
+            if first:
+                first = False
+                entropy = aux_entropy
+            else:
+                entropy = xr.concat([entropy, aux_entropy], dim='time')
+
+        except:
+            print('Skip ' + np.datetime_as_string(d0, unit='M') + ' con' +
+                  ' target ' + np.datetime_as_string(d, unit='M'))
+
+    # para poder usar la dim time igual que las otras
+    if lead != 0:
+        entropy = entropy.drop('time')
+        entropy = entropy.rename({'target':'time'})
+
+    return entropy
+#------------------------------------------------------------------------------#
+
+def ColorBySeason(date):
+    month = pd.Timestamp(date).month
+    if 3 <= month <= 5:
+        return '#E0E048'
+    elif 6 <= month <= 8:
+        return '#0049FF'
+    elif 9 <= month <= 11:
+        return '#3DFF80'
+    else:
+        return '#FF6003'
+#------------------------------------------------------------------------------#
