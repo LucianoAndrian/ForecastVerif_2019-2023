@@ -29,6 +29,9 @@ lon_regiones_sa = [[296, 296 + 10], [285, 285 + 8]]
 lat_regiones_sa = [[-39, -39 + 14], [-40, -40 + 10]]
 names_regiones_sa = ['SESA', 'Cuyo-Chile']
 
+# names_regiones_sa = ['SESA']# 'N-SESA', 'Chile-Cuyo', 'NeB']
+# lat_regiones_sa = [[-39,-25]]#, [-29,-17], [-40,-30], [-15,2]]
+# lon_regiones_sa = [[296, 306]]#, [305, 315], [285,293], [311,325]]
 ################################################################################
 # Plot regiones SA ------------------------------------------------------------#
 print('plot regiones')
@@ -68,10 +71,10 @@ lat_formatter = LatitudeFormatter()
 ax.xaxis.set_major_formatter(lon_formatter)
 ax.yaxis.set_major_formatter(lat_formatter)
 ax.tick_params(labelsize=7)
-plt.title('Regiones', fontsize=10)
+#plt.title('Regiones', fontsize=10)
 plt.tight_layout()
 if save:
-    plt.savefig(out_dir + 'mapa_regiones.jpg', dpi=dpi)
+    plt.savefig(out_dir + 'mapa_regiones_wcrp.jpg', dpi=dpi)
 else:
     plt.show()
 

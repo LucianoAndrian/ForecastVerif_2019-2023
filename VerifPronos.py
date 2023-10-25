@@ -114,35 +114,35 @@ def ComputeAndPlot(index, correlaciones_cmap, correlaciones_chirps,
             color = ColorBySeason(d)
             auxd = d.date()
             d2 = np.datetime64(auxd + relativedelta(months=1))
-            ax.axvspan(d, d2 , alpha=0.2, color=color)
+            ax.axvspan(d, d2 , alpha=0.1, color=color)
 
 
         # index score
         aux_lnscmap = aux.mean(['lon', 'lat']).mask
-        lnscmap = ax.plot(dates, aux_lnscmap,
-                             color='#FF0003',
-                             label=index.upper() + '_CMAP2.5', linewidth=2)
+        # lnscmap = ax.plot(dates, aux_lnscmap,
+        #                      color='#FF0003',
+        #                      label=index.upper() + '_CMAP2.5', linewidth=2)
 
         aux_lnschirps = aux2.mean(['lon', 'lat']).mask
         lnschirps = ax.plot(dates, aux_lnschirps,
-                               color='#9800FF',
+                               color='k',
                                label=index.upper() + '_CHIRPS1', linewidth=2)
 
         # indices
         aux_lndmi = dmi[lead:]
-        lndmi = ax2.plot(dates, aux_lndmi, label='DMI', color='#289E64')
+        lndmi = ax2.plot(dates, aux_lndmi, label='DMI', color='green')
 
         aux_lnn34 = n34[lead:]
-        lnn34 = ax2.plot(dates, aux_lnn34, label='N34', color='#00C9ED')
+        lnn34 = ax2.plot(dates, aux_lnn34, label='N34', color='red')
 
         aux_lnsam = sam[lead:]
-        lnsam = ax2.plot(dates, aux_lnsam, label='SAM', color='#005EFF')
+        #lnsam = ax2.plot(dates, aux_lnsam, label='SAM', color='k', alpha=0.5)
 
         aux_lnasam = asam[lead:]
-        lnasam = ax2.plot(dates, aux_lnasam, label='A-SAM', color='#960B00')
-
+        # lnasam = ax2.plot(dates, aux_lnasam, label='A-SAM', color='#960B00')
+        #
         aux_lnssam = ssam[lead:]
-        lnssam = ax2.plot(dates, aux_lnssam, label='S-SAM', color='#FF0088')
+        # lnssam = ax2.plot(dates, aux_lnssam, label='S-SAM', color='#FF0088')
 
         c_cmap, c2_cmap, c_chirps, c2_chirps = \
             Correlaciones(correlaciones_cmap, correlaciones_chirps, aux_lnscmap,
@@ -184,16 +184,22 @@ def ComputeAndPlot(index, correlaciones_cmap, correlaciones_chirps,
         ax.set_title(index.upper() + ' - ' + t + '\n' + 'Lead: ' + str(lead),
                      fontsize=15)
 
-        lns = lnscmap + lnschirps + lndmi + lnn34 + lnsam + lnasam + lnssam
-        ax.legend(lns, [index.upper() + '_CMAP2.5',
-                        index.upper() + '_CHIRPS1',
+        # lns = lnscmap + lnschirps + lndmi + lnn34 + lnsam + lnasam + lnssam
+        # ax.legend(lns, [index.upper() + '_CMAP2.5',
+        #                 index.upper() + '_CHIRPS1',
+        #                 'DMI', 'ONI',
+        #                 'SAM', 'A-SAM', 'S-SAM'],
+        #           loc='upper left')
+
+        lns = lnschirps + lndmi + lnn34
+        ax.legend(lns, [index.upper() + '_CHIRPS1',
                         'DMI', 'ONI',
-                        'SAM', 'A-SAM', 'S-SAM'],
+                        ],
                   loc='upper left')
 
         if save:
             plt.savefig(out_dir + index.upper() + '_' + t + '_lead_' +
-                        str(lead) +  '.jpg', dpi=dpi)
+                        str(lead) +  '_WCRP.jpg', dpi=dpi)
             plt.close('all')
         else:
             plt.show()
