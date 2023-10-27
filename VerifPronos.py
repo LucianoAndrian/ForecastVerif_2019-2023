@@ -409,8 +409,8 @@ if endtime == data.time.values[-1]:
             correlaciones_chirps = False
             plot_mapas_chirps = False
     else:
-        correlaciones_cmap = False
-        plot_mapas_cmap = False
+        correlaciones_chirps = False
+        plot_mapas_chirps = False
 
 data = ChangeLons(data, 'longitude')
 data = data.rename({'latitude':'lat'})
