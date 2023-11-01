@@ -23,6 +23,8 @@ con algun error)
 save = True
 update = True
 plot_mapas = True
+regiones_arg = 'hum_sur', 'hum_norte', 'nucleo', 'central', 'pampeana_se',\
+               'pampeana_sw', 'norte', 'noa', 'cuyo'
 # para computar tdo hasta donde se pueda verificar, endtime_select = -2 -------#
 endtime_select = -1
 ################################################################################
@@ -44,6 +46,8 @@ from Funciones import SelectFilesNMME, MakeMask, ChangeLons, ABNobs, \
     RPSO, RPSF, BSO, BSF, Plot, SameDateAs, DirAndFile, \
     CreateDirectory, OpenRegiones, Correlaciones, ColorBySeason
 import set_indices, cmap, chirps, nmme_update
+from Tool_Poligonos import get_vertices, get_mask
+from matplotlib.path import Path
 from dateutil.relativedelta import relativedelta
 import warnings
 from shapely.errors import ShapelyDeprecationWarning
@@ -67,18 +71,29 @@ else:
     dpi = 100
 # Funciones ####################################################################
 def ComputeAndPlot(index, correlaciones_cmap, correlaciones_chirps,
-                   dpi, save, lead=0, test=False, region_name='regiones_sa'):
+                   dpi, save, lead=0, test=False, region_name='regiones_sa',
+                   *args):
     dates = pd.date_range(start='2018-12-01', end=endtime,
                           freq='M') + pd.DateOffset(days=1)
     dates = dates[lead:]
 
-    titulos, lon_regiones, lat_regiones = OpenRegiones(region_name + '.csv')
+    if region_name=='regiones_sa':
+        lonlat = True
+        titulos, lon_regiones, lat_regiones = OpenRegiones(region_name + '.csv')
+    elif region_name=='regiones_arg':
+        titulos = list(args)
+        if len(titulos)==0:
+            titulos = ['litoral']
+        lonlat = False
 
     try:
         if test:
-            lon_regiones = lon_regiones[0]
-            lat_regiones = lat_regiones[0]
-            titulos = titulos[0]
+            if lonlat:
+                lon_regiones = lon_regiones[0]
+                lat_regiones = lat_regiones[0]
+                titulos = titulos[0]
+            else:
+                titulos = titulos[0]
             print('##########################################################')
             print('<<<<<<<<<<<<<<<<<<<<<<<<<< TEST >>>>>>>>>>>>>>>>>>>>>>>>>>')
             print('-----------------------Una sola region--------------------')
@@ -95,13 +110,41 @@ def ComputeAndPlot(index, correlaciones_cmap, correlaciones_chirps,
         index_chirps = BSS_chirps
 
     print(index.upper() + ' por regiones... ')
-    for ln, lt, t in zip(lon_regiones, lat_regiones, titulos):
-        data_frames = True
-        aux = index_cmap.sel(lon=slice(ln[0], ln[1]), lat=slice(lt[1], lt[0]))
-        aux2 = index_chirps.sel(lon=slice(ln[0], ln[1]), lat=slice(lt[1],lt[0]))
+
+    for r, t in enumerate(titulos):
+        # Seleccion de  regiones ----------------------------------------------#
+        if lonlat:
+            ln = lon_regiones[r]
+            lt = lat_regiones[r]
+
+            aux = index_cmap.sel(lon=slice(ln[0], ln[1]),
+                                 lat=slice(lt[1], lt[0]))
+            aux2 = index_chirps.sel(lon=slice(ln[0], ln[1]),
+                                    lat=slice(lt[1], lt[0]))
+
+            aux_pp_CMAP = data_anom.sel(
+                lon=slice(ln[0], ln[1]), lat=slice(lt[1], lt[0]))
+            aux_pp_CMAP = SameDateAs(aux_pp_CMAP, index_cmap)
+
+            aux_pp_CHIRPS = data_anom_CHIRPS.sel(
+                lon=slice(ln[0], ln[1]), lat=slice(lt[0], lt[1]))
+            aux_pp_CHIRPS = SameDateAs(aux_pp_CHIRPS, index_chirps)
+
+        else:
+            vertices = get_vertices(t)
+            path = Path(vertices)
+
+            aux = get_mask(index_cmap, path)
+            aux2 = get_mask(index_chirps, path)
+
+            aux_pp_CMAP = get_mask(data_anom, path)
+            aux_pp_CMAP = SameDateAs(aux_pp_CMAP, index_cmap)
+
+            aux_pp_CHIRPS = get_mask(data_anom_CHIRPS, path)
+            aux_pp_CHIRPS = SameDateAs(aux_pp_CHIRPS, index_chirps)
+        #----------------------------------------------------------------------#
 
         plt.rcParams['date.converter'] = 'concise'
-
 
         fig = plt.figure(figsize=(10, 7), dpi=dpi)
         ax = fig.add_subplot(111)
@@ -116,12 +159,11 @@ def ComputeAndPlot(index, correlaciones_cmap, correlaciones_chirps,
             d2 = np.datetime64(auxd + relativedelta(months=1))
             ax.axvspan(d, d2 , alpha=0.1, color=color)
 
-
         # index score
         aux_lnscmap = aux.mean(['lon', 'lat']).mask
-        # lnscmap = ax.plot(dates, aux_lnscmap,
-        #                      color='#FF0003',
-        #                      label=index.upper() + '_CMAP2.5', linewidth=2)
+        lnscmap = ax.plot(dates, aux_lnscmap,
+                             color='k', linestyle='dashed',
+                             label=index.upper() + '_CMAP2.5', linewidth=1.5)
 
         aux_lnschirps = aux2.mean(['lon', 'lat']).mask
         lnschirps = ax.plot(dates, aux_lnschirps,
@@ -130,42 +172,47 @@ def ComputeAndPlot(index, correlaciones_cmap, correlaciones_chirps,
 
         # indices
         aux_lndmi = dmi[lead:]
-        lndmi = ax2.plot(dates, aux_lndmi, label='DMI', color='green')
+        lndmi = ax2.plot(dates, aux_lndmi, label='DMI', color='green',
+                         linewidth=2)
 
         aux_lnn34 = n34[lead:]
-        lnn34 = ax2.plot(dates, aux_lnn34, label='N34', color='red')
+        lnn34 = ax2.plot(dates, aux_lnn34, label='N34', color='red',
+                         linewidth=2)
 
         aux_lnsam = sam[lead:]
-        #lnsam = ax2.plot(dates, aux_lnsam, label='SAM', color='k', alpha=0.5)
+        lnsam = ax2.plot(dates, aux_lnsam, label='SAM', color='blue',
+                         linewidth=2)
 
         aux_lnasam = asam[lead:]
-        # lnasam = ax2.plot(dates, aux_lnasam, label='A-SAM', color='#960B00')
-        #
+        lnasam = ax2.plot(dates, aux_lnasam, label='A-SAM', color='#038D96',
+                          linestyle='dashed')
+
         aux_lnssam = ssam[lead:]
-        # lnssam = ax2.plot(dates, aux_lnssam, label='S-SAM', color='#FF0088')
+        lnssam = ax2.plot(dates, aux_lnssam, label='S-SAM', color='#7032FF',
+                          linestyle='dashed')
 
         c_cmap, c2_cmap, c_chirps, c2_chirps = \
             Correlaciones(correlaciones_cmap, correlaciones_chirps, aux_lnscmap,
                           aux_lnschirps, lead, aux_lnn34, aux_lndmi, aux_lnsam,
                           aux_lnssam, aux_lnasam, index, t)
 
-        if t == 'SESA':
+        if t == titulos[0]:
             c_df_cmap = pd.DataFrame(c_cmap)
         else:
             c_df_cmap = pd.concat([c_df_cmap, pd.DataFrame(c_cmap)], axis=0)
 
-        if t == 'SESA':
+        if t ==  titulos[0]:
             c2_df_cmap = pd.DataFrame(c2_cmap)
         else:
             c2_df_cmap = pd.concat([c2_df_cmap, pd.DataFrame(c2_cmap)], axis=0)
 
-        if t == 'SESA':
+        if t ==  titulos[0]:
             c_df_chirps = pd.DataFrame(c_chirps)
         else:
             c_df_chirps = pd.concat([c_df_chirps, pd.DataFrame(c_chirps)],
                                     axis=0)
 
-        if t == 'SESA':
+        if t ==  titulos[0]:
             c2_df_chirps = pd.DataFrame(c2_chirps)
         else:
             c2_df_chirps = pd.concat([c2_df_chirps, pd.DataFrame(c2_chirps)],
@@ -174,32 +221,26 @@ def ComputeAndPlot(index, correlaciones_cmap, correlaciones_chirps,
 
         ax.hlines(y=0, xmin=dates[0], xmax=dates[-1], color='gray')
         ax2.hlines(y=0, xmin=dates[0], xmax=dates[-1], color='gray')
-        #ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y %b'))
+        #ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y %b'))/
 
         ax.grid()
-        ax.set_ylim((-.4, .5))
+        ax.set_ylim((-.5, .6))
         ax2.set_ylim((-1.5, 7))
         ax.set_ylabel(index.upper(), fontsize=10)
         ax2.set_ylabel('índices', fontsize=10)
         ax.set_title(index.upper() + ' - ' + t + '\n' + 'Lead: ' + str(lead),
                      fontsize=15)
 
-        # lns = lnscmap + lnschirps + lndmi + lnn34 + lnsam + lnasam + lnssam
-        # ax.legend(lns, [index.upper() + '_CMAP2.5',
-        #                 index.upper() + '_CHIRPS1',
-        #                 'DMI', 'ONI',
-        #                 'SAM', 'A-SAM', 'S-SAM'],
-        #           loc='upper left')
-
-        lns = lnschirps + lndmi + lnn34
-        ax.legend(lns, [index.upper() + '_CHIRPS1',
+        lns = lnscmap + lnschirps + lndmi + lnn34 + lnsam + lnasam + lnssam
+        ax.legend(lns, [index.upper() + '_CMAP2.5',
+                        index.upper() + '_CHIRPS1',
                         'DMI', 'ONI',
-                        ],
+                        'SAM', 'A-SAM', 'S-SAM'],
                   loc='upper left')
 
         if save:
             plt.savefig(out_dir + index.upper() + '_' + t + '_lead_' +
-                        str(lead) +  '_WCRP.jpg', dpi=dpi)
+                        str(lead) +  '.jpg', dpi=dpi)
             plt.close('all')
         else:
             plt.show()
@@ -208,37 +249,28 @@ def ComputeAndPlot(index, correlaciones_cmap, correlaciones_chirps,
         fig = plt.figure(figsize=(10, 7), dpi=dpi)
         ax = fig.add_subplot(111)
         ax2 = ax.twinx()
-
         # Colores para cada season
         for d in dates:
             color = ColorBySeason(d)
             auxd = d.date()
             d2 = np.datetime64(auxd + relativedelta(months=1))
-            ax.axvspan(d, d2 , alpha=0.2, color=color)
-
-        aux_pp_CMAP = data_anom.sel(
-            lon=slice(ln[0], ln[1]), lat=slice(lt[1], lt[0]))
-        aux_pp_CMAP = SameDateAs(aux_pp_CMAP, index_cmap)
-
-        aux_pp_CHIRPS = data_anom_CHIRPS.sel(
-            lon=slice(ln[0], ln[1]), lat=slice(lt[0], lt[1]))
-        aux_pp_CHIRPS = SameDateAs(aux_pp_CHIRPS, index_chirps)
+            ax.axvspan(d, d2 , alpha=0.1, color=color)
 
         lnrpsscmap = ax.plot(dates, aux.mean(['lon', 'lat']).mask,
-                             color='#FF0003',
-                             label=index.upper() + '_CMAP2.5', linewidth=2)
+                             color='k', linestyle='dashed',
+                             label=index.upper() + '_CMAP2.5', linewidth=1.5)
         lnrpsschirps = ax.plot(dates, aux2.mean(['lon', 'lat']).mask,
-                               color='#9800FF',
+                               color='k',
                                label=index.upper() + '_CHIRPS1', linewidth=2)
 
         ln_pp_CMAP = ax2.plot(dates,
                               aux_pp_CMAP.mean(['lon', 'lat']).precip,
-                              color='gray',
-                              label='CMAP2.5', linewidth=2)
+                              color='#FE00AD', linestyle='dashed',
+                              label='CMAP2.5', linewidth=1.5)
 
         ln_pp_CHIRPS = ax2.plot(dates,
                                 aux_pp_CHIRPS.mean(['lon', 'lat']).precip,
-                                color='k',
+                                color='#FE00AD',
                                 label='CHIPRS', linewidth=2)
 
         ax.hlines(y=0, xmin=dates[0], xmax=dates[-1], color='gray')
@@ -249,16 +281,16 @@ def ComputeAndPlot(index, correlaciones_cmap, correlaciones_chirps,
             mdates.AutoDateLocator(minticks=20, maxticks=26))
 
         ax.grid()
-        ax.set_ylim((-.4, .5))
-        ax2.set_ylim((-50, 150))
+        ax.set_ylim((-.5, .6))
+        ax2.set_ylim((-100, 250))
         ax.set_ylabel('RPSS', fontsize=10)
         ax2.set_ylabel('PP anom. [mm]', fontsize=10)
         ax.set_title(index.upper() + ' - ' + t + '\n' + 'Lead: ' + str(lead),
                      fontsize=15)
 
         lns = lnrpsscmap + lnrpsschirps + ln_pp_CMAP + ln_pp_CHIRPS
-        ax.legend(lns, [index.upper() + '_CMAP2.5', index.upper() +
-                        '_CHIRPS1', 'CMAP', 'CHIRPS'], loc='upper left')
+        ax.legend(lns, [index.upper() + '_CMAP2.5', index.upper() + '_CHIRPS1',
+                        'CMAP', 'CHIRPS'], loc='upper left')
 
         if save:
             plt.savefig(out_dir + index.upper() + '_' + t + '_lead_' +
@@ -358,7 +390,8 @@ data_anom = data_anom*MakeMask(data_anom, 'precip')
 
 ################################################################################
 print('NMME ------------------------------------------------------------------')
-nmme_update.update()
+if update:
+    nmme_update.update()
 files = SelectFilesNMME(nmme_pronos, 'prate', False)
 # ultimo pronostico que que puede ser verificado
 posf = [i for i, prono in enumerate(files) if endtime_str in prono][0]
@@ -494,8 +527,11 @@ for l in lead:
     ############################################################################
     ComputeAndPlot('rpss', correlaciones_cmap, correlaciones_chirps, dpi, save,
                    l,test, 'regiones_sa')
-    ComputeAndPlot('bss', correlaciones_cmap, correlaciones_chirps, dpi, save,
-                   l, test, 'regiones_sa')
+    # ComputeAndPlot('bss', correlaciones_cmap, correlaciones_chirps, dpi, save,
+    #                l, test, 'regiones_sa')
+    # ------------------------------------------------------------------------ #
+    ComputeAndPlot('rpss', correlaciones_cmap, correlaciones_chirps, dpi, save,
+                   l,test, 'regiones_arg', regiones_arg)
     ############################################################################
 
     if plot_mapas & (plot_mapas_cmap | plot_mapas_chirps):
