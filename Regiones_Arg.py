@@ -29,7 +29,8 @@ if save:
 else:
     dpi = 100
 ################################################################################
-regiones_arg = 'hum_sur', 'hum_norte'
+regiones_arg = 'hum_sur2', 'hum_norte2', 'centro2', 'patagonia_oeste', \
+               'patagonia', 'noa'#, 'centro_norte'
 
 colores = ['firebrick', 'forestgreen', 'navy', 'dodgerblue', 'yellow',
            'orange', 'pink', 'purple', 'lime']
