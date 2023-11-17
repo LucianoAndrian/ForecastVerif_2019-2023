@@ -23,8 +23,8 @@ con algun error)
 save = True
 update = True
 plot_mapas = True
-regiones_arg = 'hum_sur', 'hum_norte', 'nucleo', 'central', 'pampeana_se',\
-               'pampeana_sw', 'norte', 'noa', 'cuyo'
+regiones_arg = 'hum_sur2', 'hum_norte2', 'centro2', 'patagonia_oeste', \
+               'patagonia', 'noa'
 # para computar tdo hasta donde se pueda verificar, endtime_select = -2 -------#
 endtime_select = -1
 ################################################################################
@@ -84,8 +84,11 @@ def ComputeAndPlot(index, correlaciones_cmap, correlaciones_chirps,
         titulos = list(args)
         if len(titulos)==0:
             titulos = ['litoral']
+        else:
+            titulos = titulos[0]
         lonlat = False
 
+    print(titulos)
     try:
         if test:
             if lonlat:
@@ -112,6 +115,7 @@ def ComputeAndPlot(index, correlaciones_cmap, correlaciones_chirps,
     print(index.upper() + ' por regiones... ')
 
     for r, t in enumerate(titulos):
+
         # Seleccion de  regiones ----------------------------------------------#
         if lonlat:
             ln = lon_regiones[r]
