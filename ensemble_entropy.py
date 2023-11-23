@@ -14,7 +14,9 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from Funciones import CreateDirectory, SelectFilesNMME, DirAndFile, \
-    OpenRegiones, ColorBySeason
+    OpenRegiones, ColorBySeason, Entropy
+from Tool_Poligonos import get_vertices, get_mask
+from matplotlib.path import Path
 import set_indices, nmme_update
 from dateutil.relativedelta import relativedelta
 import warnings
@@ -52,58 +54,8 @@ def Proc(array):
     serie = np.reshape(array, array.size)
     serie_mean = np.nanmean(serie)
     return serie, serie_mean
-################################################################################
-print('Set Indices ###########################################################')
-n34, dmi, sam, ssam, asam, endtime = set_indices.compute()
-dates_index = n34.time.values
 
-indices = [sam, asam, ssam, dmi, n34]
-indices_name = ['SAM', 'A-SAM', 'S-SAM', 'DMI', 'Niño3.4']
-################################################################################
-# endtime determinado por el ONI, se actualiza al trimestre anterior
-# e.g. al finalizar agosto actualiza ONI en JJA --> mm = 7
-print('#######################################################################')
-print('<<<<<<<<<<<<<<<<<<<<< indices hasta: ' + str(endtime).split('T')[0] +
-      ' >>>>>>>>>>>>>>>>>>>>>>')
-print('#######################################################################')
-################################################################################
-# NMME forecast
-nmme_update.update()
-files = SelectFilesNMME(nmme_pronos, 'prate', size_check=True)
-
-# endtime de los pronos libre
-endtime_nmme = files[-1].split('_')[-2]
-endtime_nmme = f"{endtime_nmme[:4]}-{endtime_nmme[4:6]}-01"
-endtime_nmme = np.datetime64(endtime_nmme)
-print('#######################################################################')
-print('<<<<<<<<<<<<<<<<<<<<<<< NMME hasta: ' + str(endtime_nmme).split('T')[0] +
-      ' >>>>>>>>>>>>>>>>>>>>>>>>')
-print('#######################################################################')
-
-# y el ultimo target correspondiente
-aux = endtime_nmme.astype('M8[D]').astype('O')
-targetime = aux + relativedelta(months=6)
-targetime = np.datetime64(targetime)
-
-# pronos desde 201901
-data_nmme = xr.open_mfdataset(files, decode_times=False, engine='netcdf4',
-                              combine='nested', concat_dim='initial_time')
-data_nmme = data_nmme.rename({'initial_time':'time'}) # para mas adelante
-data_nmme['time'] = pd.date_range(start='2018-12-01', end=endtime_nmme,
-                                  freq='M') + pd.DateOffset(days=1)
-data_nmme['target'] = pd.date_range(start='2018-12-01', end=targetime,
-                                  freq='M') + pd.DateOffset(days=1)
-
-date_nmme = data_nmme.time.values
-################################################################################
-from Funciones import Entropy
-aux = Entropy(data_nmme)
-
-for ln, lt, t in zip(lon_regiones, lat_regiones, titulos):
-    print(t)
-    region = data_nmme.sel(lon=slice(ln[0], ln[1]), lat=slice(lt[1], lt[0]))
-
-    # leads
+def ComputeAndPlot(region, t, save):
     for l in lead:
         print('Lead: ' + str(l))
 
@@ -178,8 +130,68 @@ for ln, lt, t in zip(lon_regiones, lat_regiones, titulos):
         else:
             plt.show()
 
+################################################################################
+print('Set Indices ###########################################################')
+n34, dmi, sam, ssam, asam, endtime = set_indices.compute()
+dates_index = n34.time.values
 
-        print('Done plots')
+indices = [sam, asam, ssam, dmi, n34]
+indices_name = ['SAM', 'A-SAM', 'S-SAM', 'DMI', 'Niño3.4']
+################################################################################
+# endtime determinado por el ONI, se actualiza al trimestre anterior
+# e.g. al finalizar agosto actualiza ONI en JJA --> mm = 7
+print('#######################################################################')
+print('<<<<<<<<<<<<<<<<<<<<< indices hasta: ' + str(endtime).split('T')[0] +
+      ' >>>>>>>>>>>>>>>>>>>>>>')
+print('#######################################################################')
+################################################################################
+# NMME forecast
+nmme_update.update()
+files = SelectFilesNMME(nmme_pronos, 'prate', size_check=True)
+
+# endtime de los pronos libre
+endtime_nmme = files[-1].split('_')[-2]
+endtime_nmme = f"{endtime_nmme[:4]}-{endtime_nmme[4:6]}-01"
+endtime_nmme = np.datetime64(endtime_nmme)
+print('#######################################################################')
+print('<<<<<<<<<<<<<<<<<<<<<<< NMME hasta: ' + str(endtime_nmme).split('T')[0] +
+      ' >>>>>>>>>>>>>>>>>>>>>>>>')
+print('#######################################################################')
+
+# y el ultimo target correspondiente
+aux = endtime_nmme.astype('M8[D]').astype('O')
+targetime = aux + relativedelta(months=6)
+targetime = np.datetime64(targetime)
+
+# pronos desde 201901
+data_nmme = xr.open_mfdataset(files, decode_times=False, engine='netcdf4',
+                              combine='nested', concat_dim='initial_time')
+data_nmme = data_nmme.rename({'initial_time':'time'}) # para mas adelante
+data_nmme['time'] = pd.date_range(start='2018-12-01', end=endtime_nmme,
+                                  freq='M') + pd.DateOffset(days=1)
+data_nmme['target'] = pd.date_range(start='2018-12-01', end=targetime,
+                                  freq='M') + pd.DateOffset(days=1)
+
+date_nmme = data_nmme.time.values
+################################################################################
+# Regiones SA
+for ln, lt, t in zip(lon_regiones, lat_regiones, titulos):
+    print(t)
+    region = data_nmme.sel(lon=slice(ln[0], ln[1]), lat=slice(lt[1], lt[0]))
+
+    ComputeAndPlot(region, t, save)
+
+# -----------------------------------------------------------------------------#
+# Regiones Arg
+regiones_arg = 'hum_sur2', 'hum_norte2', 'centro2', 'patagonia_oeste', \
+               'patagonia', 'noa'
+for t in regiones_arg:
+    print(t)
+    path = Path(get_vertices(t))
+    region = get_mask(data_nmme, path)
+
+    ComputeAndPlot(region, t, save)
+
 
 ################################################################################
 print('#######################################################################')
