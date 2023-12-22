@@ -305,21 +305,25 @@ def ComputeAndPlot(index, correlaciones_cmap, correlaciones_chirps,
 
     if correlaciones_cmap:
         c_df_cmap.to_csv(out_dir + index.upper() +
-                         '_CMAP_correlaciones2_lead_' + str(lead) + '.txt',
+                         '_CMAP_correlaciones2_lead_' + str(lead) +
+                         region_name + '.txt',
                          sep='\t', index=False, header=True)
 
         c2_df_cmap.to_csv(out_dir + index.upper() +
-                      '_CMAP_correlaciones2_pvalue_lead_' + str(lead) + '.txt',
+                      '_CMAP_correlaciones2_pvalue_lead_' + str(lead) +
+                         region_name + '.txt',
                       sep='\t', index=False, header=True)
 
     if correlaciones_chirps:
         c_df_chirps.to_csv(out_dir + index.upper() +
-                           '_chirps_correlaciones2_lead_' + str(lead) + '.txt',
+                           '_chirps_correlaciones2_lead_' + str(lead) +
+                           region_name + '.txt',
                            sep='\t', index=False, header=True)
 
         c2_df_chirps.to_csv(out_dir + index.upper() +
                             '_chirps_correlaciones2_pvalue_lead_' + str(lead) +
-                            '.txt', sep='\t', index=False, header=True)
+                            region_name + '.txt',
+                            sep='\t', index=False, header=True)
 
 ################################################################################
 print('Set Indices ###########################################################')
