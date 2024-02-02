@@ -4,7 +4,7 @@ Anomalias de PP observadas en cada trimestre solapado
 ################################################################################
 save = True
 update = True
-plot_full = False
+plot_full = True
 ################################################################################
 nmme_pronos = '/pikachu/datos/luciano.andrian/verif_2019_2023/nmme_pronos/'
 cmap_data = '/pikachu/datos/luciano.andrian/verif_2019_2023/cmap/'
@@ -47,8 +47,13 @@ def Check_LastTrimPlot(endtime, data, dataset, out_dir, dir_results, full):
                'JJA', 'JAS','ASO', 'SON', 'OND', 'NDJ']
 
     path = out_dir + dir_results + '/'
-    file = 'pp_anom_trim_' + seasons[int(str(endtime)[5:7])-1] + '-' +\
-           str(endtime)[:4] + '_' + dataset + '.jpg'
+    try:
+        file = 'pp_anom_trim_' + seasons[int(str(endtime)[5:7]) - 1] + '-' + \
+               str(endtime)[:4] + '_' + dataset + '.jpg'
+    except:
+        file = 'pp_anom_trim_' + seasons[int(str(endtime)[5:7])] + '-' + \
+               str(endtime)[:4] + '_' + dataset + '.jpg'
+
 
     file_path = os.path.join(path, file)
 
