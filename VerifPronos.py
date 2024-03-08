@@ -395,6 +395,7 @@ data_verif = data.sel(time=slice('2019-01-01', endtime))
 data_anom = data.groupby('time.month') - \
             data_clim_f.groupby('time.month').mean()
 data_anom = data_anom*MakeMask(data_anom, 'precip')
+data_anom = data_anom.sel(time=slice('2019-01-01', endtime))
 
 ################################################################################
 print('NMME ------------------------------------------------------------------')

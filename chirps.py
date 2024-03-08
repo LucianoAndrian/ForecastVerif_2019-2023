@@ -18,7 +18,7 @@ anio = datetime.now().year
 ################################################################################
 def download_full():
     print('DOWNLOAD = TRUE!!!')
-    for y in range(1981, 2024):
+    for y in range(1981, anio+1):
         url = 'https://data.chc.ucsb.edu/products/CHIRPS-2.0/global_daily/' \
               'netcdf/p25/chirps-v2.0.' + str(y) + '.days_p25.nc'
         os.system('wget -O /pikachu/datos/luciano.andrian/verif_2019_2023/'
@@ -53,16 +53,16 @@ def update():
                       'chirps/ch_*.nc')
 
     files = sorted(files, key=lambda x: x.split()[0])
-    if anio != 2024:
-        files = files[-6:]
-        data = xr.open_mfdataset(files)
+    #if anio != 2024:
+    files = files[2018-anio-1:]
+    data = xr.open_mfdataset(files)
 
-        data = data.resample(time='1MS').mean('time')
-        data.to_netcdf('/pikachu/datos/luciano.andrian/verif_2019_2023/'
+    data = data.resample(time='1MS').mean('time')
+    data.to_netcdf('/pikachu/datos/luciano.andrian/verif_2019_2023/'
                        'chirps/chirps_2019_2023_mmean.nc')
-        print('Done proc')
-    else:
-        print('CORREGIR files[-6:]!!!')
+    print('Done proc')
+    #else:
+    #    print('CORREGIR files[-6:]!!!')
 
 #------------------------------------------------------------------------------#
 if __name__ == "__main__":
