@@ -19,7 +19,7 @@ def update():
     if current_month != last_f_month:
         subprocess.run(
             ['bash', '/pikachu/datos/luciano.andrian/verif_2019_2023/'
-                     'nmme_download/update_nmme.sh'])
+                     'nmme_download/update_nmme2.sh'])
 
 ################################################################################
 if __name__ == "__main__":

@@ -22,7 +22,7 @@ warnings.filterwarnings("ignore", category=ShapelyDeprecationWarning)
 warnings.filterwarnings("ignore")
 from Tool_Poligonos import get_vertices
 ################################################################################
-save = True
+save = False
 if save:
     dpi = 300
     CreateDirectory(out_dir, dir_results)

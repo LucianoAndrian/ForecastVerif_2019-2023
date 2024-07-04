@@ -88,7 +88,7 @@ data = xr.open_dataset(
     chirps_data + 'chirps_2019_2023_mmean.nc').__mul__(365/12) #dia
 
 # Ideem que con CMAP
-if endtime == data.time.values[-2]:
+if endtime > data.time.values[-2]:
     print('CHIRPS desactualizado')
     if update:
         print('Intentando actualizar CHIRPS')

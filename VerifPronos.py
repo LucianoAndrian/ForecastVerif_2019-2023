@@ -150,7 +150,7 @@ def ComputeAndPlot(index, correlaciones_cmap, correlaciones_chirps,
 
         plt.rcParams['date.converter'] = 'concise'
 
-        fig = plt.figure(figsize=(10, 7), dpi=dpi)
+        fig = plt.figure(figsize=(15, 7), dpi=dpi)
         ax = fig.add_subplot(111)
         ax.xaxis.set_major_locator(
             mdates.AutoDateLocator(minticks=20, maxticks=26))
@@ -250,7 +250,7 @@ def ComputeAndPlot(index, correlaciones_cmap, correlaciones_chirps,
             plt.show()
 
         ########################################################################
-        fig = plt.figure(figsize=(10, 7), dpi=dpi)
+        fig = plt.figure(figsize=(15, 7), dpi=dpi)
         ax = fig.add_subplot(111)
         ax2 = ax.twinx()
         # Colores para cada season
@@ -333,6 +333,7 @@ n34, dmi, sam, ssam, asam, endtime = set_indices.compute()
 # endtime determinado por el ONI, se actualiza al trimestre anterior
 # e.g. al finalizar agosto actualiza ONI en JJA --> mm = 7
 endtime = n34.time.values[endtime_select]
+cu_year = n34.time.dt.year[-1].values
 n34 = n34.oni
 if endtime_select != -1:
     n34 = n34[:endtime_select+1]
@@ -366,14 +367,14 @@ lat_cmap = data.lat.values
 # para poder calcular el promedio trimestral
 # si el ONI tiene mm = 7 --> JJA,
 # y el ultimo tiempo de CMAP  es del mes 7, el trimestre es MJJ
-if endtime == data.time.values[-1]:
+if endtime > data.time.values[-1]:
     print('CMAP desactualizado')
     if update:
         print('Intentando actualizar CMAP')
         cmap.update()
         data = xr.open_dataset(cmap_data + 'pp_cmap.nc').__mul__(
             365 / 12)  # dia
-        if endtime == data.time.values[-1]:
+        if endtime > data.time.values[-1]:
             print('Actualizacion CMAP no disponible')
             print('Se computará la evolución temporal solamente')
             correlaciones_cmap = False
@@ -438,14 +439,14 @@ data = xr.open_dataset(
     chirps_data + 'chirps_2019_2023_mmean.nc').__mul__(365/12) #dia
 
 # Ideem que con CMAP
-if endtime == data.time.values[-1]:
+if endtime > data.time.values[-1]:
     print('CHIRPS desactualizado')
     if update:
         print('Intentando actualizar CHIRPS')
         chirps.update()
         data = xr.open_dataset(
             chirps_data + 'chirps_2019_2023_mmean.nc').__mul__(365 / 12)  # dia
-        if endtime == data.time.values[-1]:
+        if endtime > data.time.values[-1]:
             print('Actualizacion CHIRPS no disponible')
             print('Se computará la evolución temporal solamente')
             correlaciones_chirps = False
@@ -552,7 +553,7 @@ for l in lead:
         cbar.set_under('white')
         cbar.set_bad(color='white')
 
-        anio = [2019, 2020, 2021, 2022, 2023]
+        anio = range(2019, cu_year + 1)
 
         if plot_mapas_chirps & plot_mapas_cmap:
             rpss = [RPSS_cmap_nm, RPSS_chirps, BSS_cmap_nm, BSS_chirps]
@@ -589,27 +590,27 @@ for l in lead:
 
                 except:
                     pass
-        # All 7/2019-4/2023 ---------------------------------------------------#
-        for ds, ds_name, i in zip(rpss, dataset, index):
-            try:
-                aux = ds.sel(time=slice('2019-07-01', '2023-12-01')).\
-                    mean('time')
-                titulo = i + ' - ' + '7/2019 - 3/2023' + ' - ' + ds_name  +\
-                         ' Lead: ' + str(l)
-                name_fig = DirAndFile(out_dir, dir_results, 'MAPA',
-                                      ['2019_2023', i, ds_name, 'Lead', str(l)])
-
-                try:
-                    Plot(aux, aux['mask'],
-                         [-.05, 0, .05, .1, .15, .25, .30, .35], save,
-                         dpi, titulo, name_fig, 'gray', cbar )
-                except:
-                    Plot(aux, aux,
-                         [-.05, 0, .05, .1, .15, .25, .30, .35], save,
-                         dpi, titulo, name_fig, 'k', cbar)
-
-            except:
-                pass
+        # # All 7/2019-4/2023 ---------------------------------------------------#
+        # for ds, ds_name, i in zip(rpss, dataset, index):
+        #     try:
+        #         aux = ds.sel(time=slice('2019-07-01', '2023-12-01')).\
+        #             mean('time')
+        #         titulo = i + ' - ' + '7/2019 - 3/2023' + ' - ' + ds_name  +\
+        #                  ' Lead: ' + str(l)
+        #         name_fig = DirAndFile(out_dir, dir_results, 'MAPA',
+        #                               ['2019_2023', i, ds_name, 'Lead', str(l)])
+        #
+        #         try:
+        #             Plot(aux, aux['mask'],
+        #                  [-.05, 0, .05, .1, .15, .25, .30, .35], save,
+        #                  dpi, titulo, name_fig, 'gray', cbar )
+        #         except:
+        #             Plot(aux, aux,
+        #                  [-.05, 0, .05, .1, .15, .25, .30, .35], save,
+        #                  dpi, titulo, name_fig, 'k', cbar)
+        #
+        #     except:
+        #         pass
 ################################################################################
 ################################################################################
 print('done')

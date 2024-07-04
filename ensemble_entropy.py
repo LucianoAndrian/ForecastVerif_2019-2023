@@ -67,7 +67,7 @@ def ComputeAndPlot(region, t, save):
         # Mean prob. ----------------------------------------------------------#
         dates = date_nmme[l::]
         plt.rcParams['date.converter'] = 'concise'
-        fig = plt.figure(figsize=(10, 7), dpi=dpi)
+        fig = plt.figure(figsize=(15, 7), dpi=dpi)
         ax = fig.add_subplot(111)
         ax.xaxis.set_major_locator(
             mdates.AutoDateLocator(minticks=20, maxticks=26))
@@ -113,7 +113,7 @@ def ComputeAndPlot(region, t, save):
         ymin = np.round(min(entropy.values),1) - 0.1
         ax.set_ylim((ymin, ymax))
         ax2.set_ylim((-1.5, 7))
-        ax.set_ylabel('Probabilidad', fontsize=10)
+        ax.set_ylabel('Entropy', fontsize=10)
         ax2.set_ylabel('índices', fontsize=10)
         ax.set_title(
             'Prob.' + ' - ' + t + '\n' + 'Lead: ' + str(l),

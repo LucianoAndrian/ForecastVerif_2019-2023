@@ -27,7 +27,7 @@ def update():
     file_month = datetime.utcfromtimestamp(
         os.path.getmtime(file)).strftime('%m')
 
-    if current_month != file_month:
+    if current_month > file_month:
         print('ERSSTv5 desactualizado')
         print('Descargando versión más reciente')
 
