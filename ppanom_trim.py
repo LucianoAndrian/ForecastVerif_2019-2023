@@ -3,7 +3,7 @@ Anomalias de PP observadas en cada trimestre solapado
 """
 ################################################################################
 save = True
-update = True
+update = False
 plot_full = True
 ################################################################################
 nmme_pronos = '/pikachu/datos/luciano.andrian/verif_2019_2023/nmme_pronos/'
@@ -47,12 +47,12 @@ def Check_LastTrimPlot(endtime, data, dataset, out_dir, dir_results, full):
                'JJA', 'JAS','ASO', 'SON', 'OND', 'NDJ']
 
     path = out_dir + dir_results + '/'
-    try:
-        file = 'pp_anom_trim_' + seasons[int(str(endtime)[5:7]) - 1] + '-' + \
-               str(endtime)[:4] + '_' + dataset + '.jpg'
-    except:
-        file = 'pp_anom_trim_' + seasons[int(str(endtime)[5:7])] + '-' + \
-               str(endtime)[:4] + '_' + dataset + '.jpg'
+#    try:
+    file = 'pp_anom_trim_' + seasons[int(str(endtime)[5:7])] + '-' + \
+           str(endtime)[:4] + '_' + dataset + '.jpg'
+    # except:
+    #     file = 'pp_anom_trim_' + seasons[int(str(endtime)[5:7])] + '-' + \
+    #            str(endtime)[:4] + '_' + dataset + '.jpg'
 
 
     file_path = os.path.join(path, file)
@@ -62,7 +62,7 @@ def Check_LastTrimPlot(endtime, data, dataset, out_dir, dir_results, full):
     else:
         dates_to_plot = [data.time.values[-2]]
         if full:
-            dates_to_plot = data.time.values[:-2]
+            dates_to_plot = data.time.values[:-1]
 
 
 
@@ -71,6 +71,10 @@ def Check_LastTrimPlot(endtime, data, dataset, out_dir, dir_results, full):
 ################################################################################
 date = datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 endtime = np.datetime64(date - relativedelta(months=1))
+
+# Hasta junio de 2024 debido al cambio de modelos en el ensamble canadiense
+# CANSips en julio. para trim mm = 5
+endtime = np.datetime64('2024-06-01T00:00:00.000000000')
 ################################################################################
 # Apertura de bases de datos
 data = xr.open_dataset(

@@ -3,6 +3,8 @@ Evolucion temporal de los índices y "scatter" de las prob. de los puntos de
  grilla.
 """
 ################################################################################
+save = True
+################################################################################
 nmme_pronos = '/pikachu/datos/luciano.andrian/verif_2019_2023/nmme_pronos/'
 dir = '/pikachu/datos/luciano.andrian/verif_2019_2023/salidas/'
 out_dir = '/pikachu/datos/luciano.andrian/verif_2019_2023/salidas/scatter/'
@@ -24,12 +26,12 @@ from shapely.errors import ShapelyDeprecationWarning
 warnings.filterwarnings("ignore", category=ShapelyDeprecationWarning)
 warnings.filterwarnings("ignore")
 ################################################################################
-save = True
 test = False # solo va computar una region
 lead = [0, 1, 2, 3]
 CreateDirectory(out_dir, dir_results)
 ################################################################################
 # some sets
+update = False
 if save:
     dpi = 300
 else:
@@ -94,7 +96,7 @@ def ComputeAndPlot(region, t, save, ymax_auxvalue=0.5):
         # Mean prob. ----------------------------------------------------------#
         dates = date_nmme[l::]
         plt.rcParams['date.converter'] = 'concise'
-        fig = plt.figure(figsize=(10, 7), dpi=dpi)
+        fig = plt.figure(figsize=(15, 7), dpi=dpi)
         ax = fig.add_subplot(111)
         ax.xaxis.set_major_locator(
             mdates.AutoDateLocator(minticks=20, maxticks=26))
@@ -162,6 +164,10 @@ def ComputeAndPlot(region, t, save, ymax_auxvalue=0.5):
 print('Set Indices ###########################################################')
 n34, dmi, sam, ssam, asam, endtime = set_indices.compute()
 dates_index = n34.time.values
+# ---------------------------------------------------------------------------- #
+# Hasta junio de 2024 debido al cambio de modelos en el ensamble canadiense
+# CANSips en julio.
+endtime = np.datetime64('2024-06-01T00:00:00.000000000')
 
 indices = [sam, asam, ssam, dmi, n34]
 indices_name = ['SAM', 'A-SAM', 'S-SAM', 'DMI', 'Niño3.4']
@@ -174,7 +180,11 @@ print('<<<<<<<<<<<<<<<<<<<<< indices hasta: ' + str(endtime).split('T')[0] +
 print('#######################################################################')
 ################################################################################
 # NMME forecast
-nmme_update.update()
+
+if update:
+    print('update = True !!!')
+    nmme_update.update()
+
 files = SelectFilesNMME(nmme_pronos, 'prate', size_check=True)
 
 # endtime de los pronos libre

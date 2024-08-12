@@ -10,14 +10,12 @@ out_dir = '/pikachu/datos/luciano.andrian/verif_2019_2023/salidas/scatter/'
 dir_results = 'index_vs_index'
 ################################################################################
 import xarray as xr
-import numpy as np
-from dateutil.relativedelta import relativedelta
 from Funciones import DMI, SameDateAs, RMean3
 import Set_ONI as ONI
 import Set_SAM_indices as SAM
 import ERSSTv5
 ################################################################################
-def compute():
+def compute(update=False):
     # ONI Descargado, para no cambiar tdo el codigo n34 = ONI -----------------#
     ONI.update()
     n34 = xr.open_dataset(dir + 'oni.nc')
@@ -26,17 +24,20 @@ def compute():
     anio = endtime.astype('datetime64[Y]').astype(int) + 1970
 
     # DMI calculado a partir de ERSSTv5 actualizada ---------------------------#
-    ERSSTv5.update()
+    if update:
+        ERSSTv5.update()
     aux0, aux, dmi = DMI(filter_bwa=False, start_per=1920, end_per=anio)
     dmi = SameDateAs(dmi, n34)
 
 
     # SAM ---------------------------------------------------------------------#
-    SAM.update()
+    if update:
+        SAM.update()
     try:
-        sam = SameDateAs(RMean3(xr.open_dataset(dir + 'sam.nc').mean_estimate), n34)
-        asam = SameDateAs(RMean3(xr.open_dataset(dir + 'asam.nc').mean_estimate),
-                          n34)
+        sam = SameDateAs(
+            RMean3(xr.open_dataset(dir + 'sam.nc').mean_estimate), n34)
+        asam = SameDateAs(
+            RMean3(xr.open_dataset(dir + 'asam.nc').mean_estimate),n34)
         ssam = SameDateAs(RMean3(xr.open_dataset(dir + 'ssam.nc').mean_estimate),
                           n34)
     except KeyError as e:

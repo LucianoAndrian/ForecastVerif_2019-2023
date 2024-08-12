@@ -21,7 +21,7 @@ con algun error)
 """
 ################################################################################
 save = True
-update = True
+update = False
 plot_mapas = True
 regiones_arg = 'hum_sur2', 'hum_norte2', 'centro2', 'patagonia_oeste', \
                'patagonia', 'noa'
@@ -46,6 +46,7 @@ from Funciones import SelectFilesNMME, MakeMask, ChangeLons, ABNobs, \
     RPSO, RPSF, BSO, BSF, Plot, SameDateAs, DirAndFile, \
     CreateDirectory, OpenRegiones, Correlaciones, ColorBySeason
 import set_indices, cmap, chirps, nmme_update
+from datetime import datetime
 from Tool_Poligonos import get_vertices, get_mask
 from matplotlib.path import Path
 from dateutil.relativedelta import relativedelta
@@ -57,6 +58,10 @@ warnings.filterwarnings("ignore")
 ################################################################################
 test = False # = True solo va computar una region
 lead = [0, 1, 2, 3]
+if datetime.now().year >=2024 and datetime.now().month >=7 and update:
+    update = False
+    print(f"update = False")
+    print(f"actualziación cancelada desde julio de 2024 por cambios en CANSips")
 #------------------------------------------------------------------------------#
 # Si explicitamente no se quiere plotear algun mapa, cambiar a False
 plot_mapas_cmap = plot_mapas
@@ -149,7 +154,7 @@ def ComputeAndPlot(index, correlaciones_cmap, correlaciones_chirps,
         #----------------------------------------------------------------------#
 
         plt.rcParams['date.converter'] = 'concise'
-
+        print('Plot...')
         fig = plt.figure(figsize=(15, 7), dpi=dpi)
         ax = fig.add_subplot(111)
         ax.xaxis.set_major_locator(
@@ -164,17 +169,19 @@ def ComputeAndPlot(index, correlaciones_cmap, correlaciones_chirps,
             ax.axvspan(d, d2 , alpha=0.1, color=color)
 
         # index score
+        print('cmap')
         aux_lnscmap = aux.mean(['lon', 'lat']).mask
         lnscmap = ax.plot(dates, aux_lnscmap,
                              color='k', linestyle='dashed',
                              label=index.upper() + '_CMAP2.5', linewidth=1.5)
-
+        print('chirps')
         aux_lnschirps = aux2.mean(['lon', 'lat']).mask
         lnschirps = ax.plot(dates, aux_lnschirps,
                                color='k',
                                label=index.upper() + '_CHIRPS1', linewidth=2)
 
         # indices
+        print('índices...')
         aux_lndmi = dmi[lead:]
         lndmi = ax2.plot(dates, aux_lndmi, label='DMI', color='green',
                          linewidth=2)
@@ -195,6 +202,7 @@ def ComputeAndPlot(index, correlaciones_cmap, correlaciones_chirps,
         lnssam = ax2.plot(dates, aux_lnssam, label='S-SAM', color='#7032FF',
                           linestyle='dashed')
 
+        print('correlations...')
         c_cmap, c2_cmap, c_chirps, c2_chirps = \
             Correlaciones(correlaciones_cmap, correlaciones_chirps, aux_lnscmap,
                           aux_lnschirps, lead, aux_lnn34, aux_lndmi, aux_lnsam,
@@ -222,7 +230,7 @@ def ComputeAndPlot(index, correlaciones_cmap, correlaciones_chirps,
             c2_df_chirps = pd.concat([c2_df_chirps, pd.DataFrame(c2_chirps)],
                                      axis=0)
 
-
+        print('plot settings')
         ax.hlines(y=0, xmin=dates[0], xmax=dates[-1], color='gray')
         ax2.hlines(y=0, xmin=dates[0], xmax=dates[-1], color='gray')
         #ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y %b'))/
@@ -250,6 +258,7 @@ def ComputeAndPlot(index, correlaciones_cmap, correlaciones_chirps,
             plt.show()
 
         ########################################################################
+        print('Plot rpss and pp')
         fig = plt.figure(figsize=(15, 7), dpi=dpi)
         ax = fig.add_subplot(111)
         ax2 = ax.twinx()
@@ -259,14 +268,14 @@ def ComputeAndPlot(index, correlaciones_cmap, correlaciones_chirps,
             auxd = d.date()
             d2 = np.datetime64(auxd + relativedelta(months=1))
             ax.axvspan(d, d2 , alpha=0.1, color=color)
-
+        print('rpss')
         lnrpsscmap = ax.plot(dates, aux.mean(['lon', 'lat']).mask,
                              color='k', linestyle='dashed',
                              label=index.upper() + '_CMAP2.5', linewidth=1.5)
         lnrpsschirps = ax.plot(dates, aux2.mean(['lon', 'lat']).mask,
                                color='k',
                                label=index.upper() + '_CHIRPS1', linewidth=2)
-
+        print('pp')
         ln_pp_CMAP = ax2.plot(dates,
                               aux_pp_CMAP.mean(['lon', 'lat']).precip,
                               color='#FE00AD', linestyle='dashed',
@@ -277,6 +286,7 @@ def ComputeAndPlot(index, correlaciones_cmap, correlaciones_chirps,
                                 color='#FE00AD',
                                 label='CHIPRS', linewidth=2)
 
+        print('plot settings')
         ax.hlines(y=0, xmin=dates[0], xmax=dates[-1], color='gray')
         ax2.hlines(y=0, xmin=dates[0], xmax=dates[-1], color='gray')
 
@@ -303,6 +313,7 @@ def ComputeAndPlot(index, correlaciones_cmap, correlaciones_chirps,
         else:
             plt.show()
 
+    print('correlaciones...')
     if correlaciones_cmap:
         c_df_cmap.to_csv(out_dir + index.upper() +
                          '_CMAP_correlaciones2_lead_' + str(lead) +
@@ -332,9 +343,17 @@ n34, dmi, sam, ssam, asam, endtime = set_indices.compute()
 # ENDTIME ######################################################################
 # endtime determinado por el ONI, se actualiza al trimestre anterior
 # e.g. al finalizar agosto actualiza ONI en JJA --> mm = 7
-endtime = n34.time.values[endtime_select]
-cu_year = n34.time.dt.year[-1].values
+# endtime = n34.time.values[endtime_select]
+# cu_year = n34.time.dt.year[-1].values
+# ---------------------------------------------------------------------------- #
+# Verificación hasta junio de 2024 debido al cambio de modelos en el ensamble
+# canadiense CANSips en julio. Siguiendo la logica de mm, el ultimo trimestre
+# es AMJ --> mm = 5
+endtime = np.datetime64('2024-06-01T00:00:00.000000000')
+cu_year = np.array(2024)
+
 n34 = n34.oni
+
 if endtime_select != -1:
     n34 = n34[:endtime_select+1]
     time0 = dmi.time.values[0]
@@ -369,7 +388,8 @@ lat_cmap = data.lat.values
 # y el ultimo tiempo de CMAP  es del mes 7, el trimestre es MJJ
 if endtime > data.time.values[-1]:
     print('CMAP desactualizado')
-    if update:
+    aux_update=False
+    if aux_update:
         print('Intentando actualizar CMAP')
         cmap.update()
         data = xr.open_dataset(cmap_data + 'pp_cmap.nc').__mul__(
@@ -379,6 +399,7 @@ if endtime > data.time.values[-1]:
             print('Se computará la evolución temporal solamente')
             correlaciones_cmap = False
             plot_mapas_cmap = False
+        aux_update = False
     else:
         correlaciones_cmap = False
         plot_mapas_cmap = False
@@ -441,7 +462,8 @@ data = xr.open_dataset(
 # Ideem que con CMAP
 if endtime > data.time.values[-1]:
     print('CHIRPS desactualizado')
-    if update:
+    aux_update = True
+    if aux_update:
         print('Intentando actualizar CHIRPS')
         chirps.update()
         data = xr.open_dataset(
@@ -451,6 +473,7 @@ if endtime > data.time.values[-1]:
             print('Se computará la evolución temporal solamente')
             correlaciones_chirps = False
             plot_mapas_chirps = False
+        aux_update = False
     else:
         correlaciones_chirps = False
         plot_mapas_chirps = False

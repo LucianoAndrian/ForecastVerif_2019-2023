@@ -16,7 +16,7 @@ def download(file):
     try:
         url = 'https://downloads.psl.noaa.gov/Datasets/noaa.ersst.v5/' \
               'sst.mnmean.nc'
-        os.system(f'wget -O {file} {url}')
+        os.system(f'wget -O {out_dir}{file} {url}')
     except:
         print('Error al descargar ERSSTv5')
 
