@@ -42,6 +42,16 @@ def MakeMask(DataArray, dataname='mask'):
     return mask
 
 # -----------------------------------------------------------------------------#
+def Detrend(xrda, dim):
+    aux = xrda.polyfit(dim=dim, deg=1)
+    try:
+        trend = xr.polyval(xrda[dim], aux.var_polyfit_coefficients)
+    except:
+        trend = xr.polyval(xrda[dim], aux.polyfit_coefficients)
+    dt = xrda - trend
+    return dt
+# -----------------------------------------------------------------------------#
+
 def ChangeLons(data, lon_name='lon'):
     """
     Cambia el formato de las latitudes
@@ -63,6 +73,13 @@ def ChangeLons(data, lon_name='lon'):
     data = data.rename({'_longitude_adjusted': 'lon'})
 
     return data
+#------------------------------------------------------------------------------#
+def Weights(data):
+    weights = np.transpose(np.tile(np.cos(data.lat * np.pi / 180),
+                                   (len(data.lon), 1)))
+    data_w = data * weights
+    return data_w
+
 #------------------------------------------------------------------------------#
 def LeadMonth(date, lead, suma=False):
     """
