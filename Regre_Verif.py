@@ -14,6 +14,11 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from Funciones import ChangeLons, Detrend, Weights, Nino34CPC
 import set_indices
+
+if save:
+    dpì = 300
+else:
+    dpi = 100
 ################################################################################
 # Regre
 def LinearReg(xrda, dim, deg=1):
@@ -137,7 +142,7 @@ for t in data_anom.time.values: # para cada trimestre
 # ---------------------------------------------------------------------------- #
 # Evolucion temporal
 plt.rcParams['date.converter'] = 'concise'
-fig = plt.figure(figsize=(12, 7), dpi=100)
+fig = plt.figure(figsize=(12, 7), dpi=dpi)
 ax = fig.add_subplot(111)
 ax2 = ax.twinx()
 ax.xaxis.set_major_locator(mdates.AutoDateLocator(minticks=20, maxticks=26))
@@ -163,7 +168,7 @@ else:
 
 # ---------------------------------------------------------------------------- #
 # Scatter
-fig = plt.figure(figsize=(7, 6))
+fig = plt.figure(figsize=(7, 6), dpi=dpi)
 ax = fig.add_subplot(111)
 
 formatted_dates = np.array([f"{str(date)[2:4]}-{str(date)[5:7]}" for date in x])
@@ -224,7 +229,7 @@ n34_mm = n34_verif.sel(time=t)
 
 aux_rs = SpatialCorr(regre_patterns.sel(pat=mm)*np.abs(n34_mm['oni'].values),
                      data_anom.sel(time=t)['var'])
-fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(12, 6))
+fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(12, 6), dpi=dpi)
 contour1 = axes[0].contourf(data_anom.sel(time=t)['var'],
                             levels=np.linspace(-75, 75, 13),
                             cmap='BrBG', extend='both')
@@ -257,7 +262,7 @@ n34_mm = n34_verif.sel(time=t)
 
 aux_rs = SpatialCorr(regre_patterns.sel(pat=mm)*np.abs(n34_mm['oni'].values),
                      data_anom.sel(time=t)['var'])
-fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(12, 6))
+fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(12, 6), dpi=dpi)
 contour1 = axes[0].contourf(data_anom.sel(time=t)['var'],
                             levels=np.linspace(-75, 75, 13),
                             cmap='BrBG', extend='both')
